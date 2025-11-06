@@ -1,6 +1,6 @@
 # Bulk-rnaseq-analysis
 
-##Overview
+## Overview
 Differential gene expression analysis pipeline using R
 
 ## Methods
