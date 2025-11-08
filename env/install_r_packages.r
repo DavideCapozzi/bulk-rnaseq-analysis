@@ -1,14 +1,7 @@
 #!/usr/bin/env Rscript
 
 ################################################################################
-# R Package Installation Script - Version 3 COMPACT
-#
-# Key improvements:
-# 1. Minimal console output (clean and readable)
-# 2. Detailed logging only to file
-# 3. Skip problematic packages option
-# 4. Verbose error reporting with solutions
-# 5. Option to retry failed packages
+# R Package Installation Script 
 ################################################################################
 
 suppressPackageStartupMessages({
@@ -59,10 +52,9 @@ log_console <- function(msg) {
 ################################################################################
 
 setup_environment <- function() {
-  log_console("╔═══════════════════════════════════════════════════════════════════════════╗")
-  log_console("║         R Package Installation - Compact v3                              ║")
-  log_console("╚═══════════════════════════════════════════════════════════════════════════╝")
-  log_console("")
+  cat("╔═══════════════════════════════════════════════════════════════════════════╗")
+  cat("║         R Package Installation - Compact v3                               ║")
+  cat("╚═══════════════════════════════════════════════════════════════════════════╝")
 
   log_file("Installation started at", "INFO")
   log_file(paste("R Version:", R.version$version.string), "INFO")
@@ -320,11 +312,9 @@ print_summary <- function(results) {
   failed <- sum(sapply(results, function(x) !is.na(x$success) && !x$success))
   skipped <- sum(sapply(results, function(x) is.na(x$success)))
 
-  log_console("")
-  log_console("╔═══════════════════════════════════════════════════════════════════════════╗")
-  log_console("║                         INSTALLATION SUMMARY                              ║")
-  log_console("╚═══════════════════════════════════════════════════════════════════════════╝")
-  log_console("")
+  cat("╔═══════════════════════════════════════════════════════════════════════════╗")
+  cat("║                         INSTALLATION SUMMARY                              ║")
+  cat("╚═══════════════════════════════════════════════════════════════════════════╝")
   log_console(sprintf("  Total packages:    %3d", total))
   log_console(sprintf("  ✓ Successful:      %3d", success))
   log_console(sprintf("  ✗ Failed:          %3d", failed))

@@ -1,0 +1,167 @@
+╔═══════════════════════════════════════════════════════════════════════════╗ 
+║         R Package Installation - Compact v3                              ║ 
+╚═══════════════════════════════════════════════════════════════════════════╝ 
+ 
+[2025-11-08 16:11:24] [INFO] Installation started at 
+[2025-11-08 16:11:24] [INFO] R Version: R version 4.5.2 (2025-10-31) 
+[2025-11-08 16:11:24] [INFO] Working directory: /home/davidec/projects/bulk-rnaseq-analysis/env 
+[2025-11-08 16:11:24] [INFO] Library paths: /home/davidec/projects/bulk-rnaseq-analysis/env/renv/library/linux-ubuntu-jammy/R-4.5/x86_64-conda-linux-gnu, /home/davidec/.cache/R/renv/sandbox/linux-ubuntu-jammy/R-4.5/x86_64-conda-linux-gnu/51074abc 
+✓ Environment ready 
+ 
+[SETUP] Installing/loading BiocManager... 
+✓ BiocManager ready 
+ 
+[PHASE 1] Critical Base Dependencies... 
+[2025-11-08 16:11:33] [SUCCESS] BiocGenerics - SUCCESS (v0.56.0) 
+  ✓ BiocGenerics
+[2025-11-08 16:11:52] [SUCCESS] S4Vectors - SUCCESS (v0.48.0) 
+  ✓ S4Vectors
+[2025-11-08 16:12:34] [SUCCESS] IRanges - SUCCESS (v2.44.0) 
+  ✓ IRanges
+[2025-11-08 16:12:45] [SUCCESS] XVector - SUCCESS (v0.50.0) 
+  ✓ XVector
+[2025-11-08 16:13:27] [SUCCESS] GenomeInfoDb - SUCCESS (v1.46.0) 
+  ✓ GenomeInfoDb
+[2025-11-08 16:13:28] [WARNING] zlibbioc - Warning: package ‘zlibbioc’ is not available for Bioconductor version '3.22'
+
+A version of this package for your version of R might be available elsewhere,
+see the ideas at
+https://cran.r-project.org/doc/manuals/r-patched/R-admin.html#Installing-packages 
+[2025-11-08 16:13:28] [ERROR] zlibbioc - Verification FAILED 
+[2025-11-08 16:13:28] [ERROR] zlibbioc - Load error: there is no package called ‘zlibbioc’ 
+  ✗ zlibbioc
+  Completed: 5/6 packages 
+ 
+[PHASE 2] Core DE Analysis Packages... 
+[2025-11-08 16:13:30] [SUCCESS] tximport - SUCCESS (v1.38.1) 
+  ✓ tximport
+[2025-11-08 16:19:17] [SUCCESS] DESeq2 - SUCCESS (v1.50.0) 
+  ✓ DESeq2
+[2025-11-08 16:19:45] [SUCCESS] edgeR - SUCCESS (v4.8.0) 
+  ✓ edgeR
+[2025-11-08 16:19:45] [SKIP] limma - Already installed (v3.66.0) 
+  ✓ limma
+[2025-11-08 16:21:18] [WARNING] GenomicFeatures - Warning: installation of package ‘XML’ had non-zero exit status 
+[2025-11-08 16:21:18] [ERROR] GenomicFeatures - Verification FAILED 
+[2025-11-08 16:21:18] [ERROR] GenomicFeatures - Load error: there is no package called ‘GenomicFeatures’ 
+  ✗ GenomicFeatures
+[2025-11-08 16:21:18] [SKIP] SummarizedExperiment - Already installed (v1.40.0) 
+  ✓ SummarizedExperiment
+[2025-11-08 16:21:40] [SUCCESS] Biostrings - SUCCESS (v2.78.0) 
+  ✓ Biostrings
+  Completed: 6/7 packages 
+ 
+[PHASE 3] Annotation Packages... 
+[2025-11-08 16:23:34] [SUCCESS] AnnotationDbi - SUCCESS (v1.72.0) 
+  ✓ AnnotationDbi
+[2025-11-08 16:23:58] [SUCCESS] org.Hs.eg.db - SUCCESS (v3.22.0) 
+  ✓ org.Hs.eg.db
+[2025-11-08 16:24:10] [SUCCESS] GO.db - SUCCESS (v3.22.0) 
+  ✓ GO.db
+[2025-11-08 16:24:11] [WARNING] KEGG.db - Warning: package ‘KEGG.db’ is not available for Bioconductor version '3.22'
+
+A version of this package for your version of R might be available elsewhere,
+see the ideas at
+https://cran.r-project.org/doc/manuals/r-patched/R-admin.html#Installing-packages 
+[2025-11-08 16:24:11] [ERROR] KEGG.db - Verification FAILED 
+[2025-11-08 16:24:11] [ERROR] KEGG.db - Load error: there is no package called ‘KEGG.db’ 
+  ✗ KEGG.db
+  Completed: 3/4 packages 
+ 
+[PHASE 4] Enrichment Analysis Packages... 
+[2025-11-08 16:25:08] [SUCCESS] fgsea - SUCCESS (v1.36.0) 
+  ✓ fgsea
+[2025-11-08 16:33:58] [WARNING] clusterProfiler - Warning: installation of package ‘gdtools’ had non-zero exit status 
+[2025-11-08 16:33:58] [ERROR] clusterProfiler - Verification FAILED 
+[2025-11-08 16:33:58] [ERROR] clusterProfiler - Load error: there is no package called ‘clusterProfiler’ 
+  ✗ clusterProfiler
+[2025-11-08 16:34:09] [WARNING] enrichplot - Warning: installation of package ‘gdtools’ had non-zero exit status 
+[2025-11-08 16:34:09] [ERROR] enrichplot - Verification FAILED 
+[2025-11-08 16:34:09] [ERROR] enrichplot - Load error: there is no package called ‘enrichplot’ 
+  ✗ enrichplot
+[2025-11-08 16:35:03] [SUCCESS] DOSE - SUCCESS (v4.4.0) 
+  ✓ DOSE
+[2025-11-08 16:35:16] [WARNING] pathview - Warning: installation of package ‘XML’ had non-zero exit status 
+[2025-11-08 16:35:16] [ERROR] pathview - Verification FAILED 
+[2025-11-08 16:35:16] [ERROR] pathview - Load error: there is no package called ‘pathview’ 
+  ✗ pathview
+  Completed: 2/5 packages 
+ 
+[PHASE 5] Visualization & Utilities... 
+[2025-11-08 16:35:16] [SKIP] ggplot2 - Already installed (v4.0.0) 
+  ✓ ggplot2
+[2025-11-08 16:35:20] [SUCCESS] pheatmap - SUCCESS (v1.0.13) 
+  ✓ pheatmap
+[2025-11-08 16:35:20] [SKIP] RColorBrewer - Already installed (v1.1.3) 
+  ✓ RColorBrewer
+[2025-11-08 16:35:30] [WARNING] viridis - Warning: installation of package ‘xml2’ had non-zero exit status 
+[2025-11-08 16:35:30] [ERROR] viridis - Verification FAILED 
+[2025-11-08 16:35:30] [ERROR] viridis - Load error: there is no package called ‘viridis’ 
+  ✗ viridis
+[2025-11-08 16:35:30] [SKIP] scales - Already installed (v1.4.0) 
+  ✓ scales
+[2025-11-08 16:35:30] [SKIP] reshape2 - Already installed (v1.4.4) 
+  ✓ reshape2
+[2025-11-08 16:35:30] [SKIP] cowplot - Already installed (v1.2.0) 
+  ✓ cowplot
+[2025-11-08 16:35:30] [SKIP] ggrepel - Already installed (v0.9.6) 
+  ✓ ggrepel
+[2025-11-08 16:35:57] [SUCCESS] gplots - SUCCESS (v3.2.0) 
+  ✓ gplots
+[2025-11-08 16:37:00] [WARNING] readr - Warning: installation of package ‘xml2’ had non-zero exit status 
+[2025-11-08 16:37:00] [ERROR] readr - Verification FAILED 
+[2025-11-08 16:37:00] [ERROR] readr - Load error: there is no package called ‘readr’ 
+  ✗ readr
+[2025-11-08 16:37:58] [SUCCESS] readxl - SUCCESS (v1.4.5) 
+  ✓ readxl
+[2025-11-08 16:37:59] [WARNING] writexl - Warning: installation of package ‘xml2’ had non-zero exit status 
+[2025-11-08 16:37:59] [ERROR] writexl - Verification FAILED 
+[2025-11-08 16:37:59] [ERROR] writexl - Load error: there is no package called ‘writexl’ 
+  ✗ writexl
+[2025-11-08 16:38:01] [WARNING] msigdbr - Warning: installation of package ‘xml2’ had non-zero exit status 
+[2025-11-08 16:38:01] [ERROR] msigdbr - Verification FAILED 
+[2025-11-08 16:38:01] [ERROR] msigdbr - Load error: there is no package called ‘msigdbr’ 
+  ✗ msigdbr
+  Completed: 9/13 packages 
+ 
+[PHASE 6] Reproducibility Tools... 
+[2025-11-08 16:38:01] [SKIP] renv - Already installed (v1.1.5) 
+  ✓ renv
+[2025-11-08 16:38:01] [SKIP] rmarkdown - Already installed (v2.30) 
+  ✓ rmarkdown
+[2025-11-08 16:38:01] [SKIP] knitr - Already installed (v1.50) 
+  ✓ knitr
+  Completed: 3/3 packages 
+ 
+ 
+╔═══════════════════════════════════════════════════════════════════════════╗ 
+║                         INSTALLATION SUMMARY                              ║ 
+╚═══════════════════════════════════════════════════════════════════════════╝ 
+ 
+  Total packages:     38 
+  ✓ Successful:       28 
+  ✗ Failed:           10 
+  ⊘ Skipped:           0 
+  Success Rate:      73.7% 
+ 
+Failed packages: 
+  ✗ zlibbioc - Verification failed 
+  ✗ GenomicFeatures - Verification failed 
+  ✗ KEGG.db - Verification failed 
+  ✗ clusterProfiler - Verification failed 
+  ✗ enrichplot - Verification failed 
+  ✗ pathview - Verification failed 
+  ✗ viridis - Verification failed 
+  ✗ readr - Verification failed 
+  ✗ writexl - Verification failed 
+  ✗ msigdbr - Verification failed 
+ 
+To retry failed packages: 
+  SKIP_PACKAGES='' Rscript env/install_r_packages_v3_compact.r 
+ 
+Or to skip and continue with successful packages: 
+  SKIP_PACKAGES='zlibbioc|GenomicFeatures|KEGG.db|clusterProfiler|enrichplot|pathview|viridis|readr|writexl|msigdbr' Rscript env/install_r_packages_v3_compact.r 
+ 
+For detailed information, see: 
+  - Log file: r_install_compact.log 
+ 

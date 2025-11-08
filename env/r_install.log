@@ -1,0 +1,287 @@
+╔═══════════════════════════════════════════════════════════════════════════╗║         R Package Installation - Compact v3                              ║╚═══════════════════════════════════════════════════════════════════════════╝✓ Environment ready[SETUP] Installing/loading BiocManager...'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'BiocVersion'
+trying URL 'https://bioconductor.org/packages/3.22/bioc/src/contrib/BiocVersion_3.22.0.tar.gz'
+Content type 'application/x-gzip' length 1112 bytes
+==================================================
+downloaded 1112 bytes
+
+* installing *source* package ‘BiocVersion’ ...
+** this is package ‘BiocVersion’ version ‘3.22.0’
+** package ‘BiocVersion’ successfully unpacked and MD5 sums checked
+** using staged installation
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (BiocVersion)
+
+The downloaded source packages are in
+	‘/tmp/Rtmpc5Vcco/downloaded_packages’
+✓ BiocManager ready[PHASE 1] Critical Base Dependencies...'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'BiocGenerics'
+also installing the dependency ‘generics’
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'S4Vectors'
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'IRanges'
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'XVector'
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'GenomeInfoDb'
+also installing the dependencies ‘sys’, ‘askpass’, ‘curl’, ‘mime’, ‘openssl’, ‘R6’, ‘httr’, ‘jsonlite’, ‘Seqinfo’, ‘UCSC.utils’
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'zlibbioc'
+  Completed: 5/6 packages[PHASE 2] Core DE Analysis Packages...'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'tximport'
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'DESeq2'
+also installing the dependencies ‘formatR’, ‘abind’, ‘SparseArray’, ‘lambda.r’, ‘futile.options’, ‘glue’, ‘farver’, ‘labeling’, ‘RColorBrewer’, ‘viridisLite’, ‘S4Arrays’, ‘DelayedArray’, ‘futile.logger’, ‘snow’, ‘BH’, ‘cpp11’, ‘cli’, ‘gtable’, ‘isoband’, ‘lifecycle’, ‘rlang’, ‘S7’, ‘scales’, ‘vctrs’, ‘withr’, ‘GenomicRanges’, ‘SummarizedExperiment’, ‘Biobase’, ‘BiocParallel’, ‘matrixStats’, ‘locfit’, ‘ggplot2’, ‘Rcpp’, ‘MatrixGenerics’, ‘RcppArmadillo’
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'edgeR'
+also installing the dependencies ‘statmod’, ‘limma’
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'GenomicFeatures'
+also installing the dependencies ‘fastmap’, ‘bit’, ‘cachem’, ‘bit64’, ‘blob’, ‘memoise’, ‘pkgconfig’, ‘plogr’, ‘png’, ‘bitops’, ‘Rhtslib’, ‘cigarillo’, ‘RCurl’, ‘rjson’, ‘yaml’, ‘RSQLite’, ‘KEGGREST’, ‘crayon’, ‘XML’, ‘Rsamtools’, ‘GenomicAlignments’, ‘BiocIO’, ‘restfulr’, ‘AnnotationDbi’, ‘DBI’, ‘Biostrings’, ‘rtracklayer’
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'Biostrings'
+  Completed: 6/7 packages[PHASE 3] Annotation Packages...'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'AnnotationDbi'
+also installing the dependencies ‘cachem’, ‘bit64’, ‘memoise’, ‘DBI’, ‘RSQLite’, ‘KEGGREST’
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'org.Hs.eg.db'
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'GO.db'
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'KEGG.db'
+  Completed: 3/4 packages[PHASE 4] Enrichment Analysis Packages...'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'fgsea'
+also installing the dependencies ‘data.table’, ‘cowplot’, ‘fastmatch’
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'clusterProfiler'
+also installing the dependencies ‘sass’, ‘fontBitstreamVera’, ‘fontLiberation’, ‘evaluate’, ‘highr’, ‘xfun’, ‘bslib’, ‘fontawesome’, ‘jquerylib’, ‘tinytex’, ‘base64enc’, ‘fontquiver’, ‘knitr’, ‘rmarkdown’, ‘gridGraphics’, ‘tweenr’, ‘polyclip’, ‘systemfonts’, ‘lazyeval’, ‘gdtools’, ‘htmltools’, ‘htmlwidgets’, ‘utf8’, ‘ggplotify’, ‘patchwork’, ‘ggforce’, ‘ape’, ‘tidytree’, ‘treeio’, ‘ggiraph’, ‘R.oo’, ‘R.methodsS3’, ‘stringi’, ‘reshape2’, ‘pillar’, ‘tibble’, ‘tidyselect’, ‘aplot’, ‘ggfun’, ‘ggnewscale’, ‘ggrepel’, ‘ggtangle’, ‘purrr’, ‘scatterpie’, ‘ggtree’, ‘digest’, ‘R.utils’, ‘stringr’, ‘fs’, ‘rappdirs’, ‘DOSE’, ‘dplyr’, ‘enrichplot’, ‘GOSemSim’, ‘gson’, ‘igraph’, ‘magrittr’, ‘plyr’, ‘qvalue’, ‘tidyr’, ‘yulab.utils’
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'enrichplot'
+also installing the dependencies ‘bslib’, ‘rmarkdown’, ‘tibble’, ‘gdtools’, ‘htmlwidgets’, ‘ggplotify’, ‘qvalue’, ‘dplyr’, ‘ggforce’, ‘tidyr’, ‘R.utils’, ‘tidytree’, ‘treeio’, ‘ggiraph’, ‘aplot’, ‘DOSE’, ‘ggfun’, ‘ggtangle’, ‘reshape2’, ‘scatterpie’, ‘GOSemSim’, ‘ggtree’
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'DOSE'
+also installing the dependencies ‘R.utils’, ‘GOSemSim’, ‘qvalue’, ‘reshape2’
+
+'getOption("repos")' replaces Bioconductor standard repositories, see
+'help("repositories", package = "BiocManager")' for details.
+Replacement repositories:
+    BioCsoft: https://bioconductor.org/packages/3.22/bioc
+    BioCann: https://bioconductor.org/packages/3.22/data/annotation
+    BioCexp: https://bioconductor.org/packages/3.22/data/experiment
+    BioCworkflows: https://bioconductor.org/packages/3.22/workflows
+    BioCbooks: https://bioconductor.org/packages/3.22/books
+    CRAN: https://packagemanager.posit.co/cran/__linux__/jammy/latest
+Bioconductor version 3.22 (BiocManager 1.30.26), R 4.5.2 (2025-10-31)
+Installing package(s) 'pathview'
+also installing the dependencies ‘RCurl’, ‘KEGGgraph’, ‘XML’, ‘Rgraphviz’, ‘graph’
+
+  Completed: 2/5 packages[PHASE 5] Visualization & Utilities...also installing the dependencies ‘pkgbuild’, ‘rprojroot’, ‘diffobj’, ‘xml2’, ‘textshaping’, ‘brio’, ‘callr’, ‘desc’, ‘pkgload’, ‘praise’, ‘processx’, ‘ps’, ‘waldo’, ‘rex’, ‘gridExtra’, ‘hexbin’, ‘dichromat’, ‘colorspace’, ‘mapproj’, ‘vdiffr’, ‘svglite’, ‘testthat’, ‘covr’, ‘rmarkdown’, ‘maps’, ‘terra’
+
+also installing the dependencies ‘sp’, ‘gtools’, ‘caTools’, ‘rmarkdown’, ‘r2d2’
+
+also installing the dependencies ‘prettyunits’, ‘pkgbuild’, ‘progress’, ‘rex’, ‘commonmark’, ‘hunspell’, ‘brio’, ‘callr’, ‘desc’, ‘pkgload’, ‘praise’, ‘processx’, ‘ps’, ‘clipr’, ‘hms’, ‘vroom’, ‘tzdb’, ‘covr’, ‘spelling’, ‘testthat’, ‘waldo’, ‘xml2’
+
+also installing the dependencies ‘pkgbuild’, ‘rematch’, ‘callr’, ‘pkgload’, ‘processx’, ‘cellranger’, ‘progress’, ‘covr’, ‘testthat’
+
+also installing the dependencies ‘xml2’, ‘spelling’, ‘nycflights13’
+
+also installing the dependencies ‘brew’, ‘xml2’, ‘assertthat’, ‘babelgene’, ‘dplyr’, ‘roxygen2’
+
+  Completed: 9/13 packages[PHASE 6] Reproducibility Tools...  Completed: 3/3 packages╔═══════════════════════════════════════════════════════════════════════════╗║                         INSTALLATION SUMMARY                              ║╚═══════════════════════════════════════════════════════════════════════════╝  Total packages:     38  ✓ Successful:       28  ✗ Failed:           10  ⊘ Skipped:           0  Success Rate:      73.7%Failed packages:  ✗ zlibbioc - Verification failed  ✗ GenomicFeatures - Verification failed  ✗ KEGG.db - Verification failed  ✗ clusterProfiler - Verification failed  ✗ enrichplot - Verification failed  ✗ pathview - Verification failed  ✗ viridis - Verification failed  ✗ readr - Verification failed  ✗ writexl - Verification failed  ✗ msigdbr - Verification failedTo retry failed packages:  SKIP_PACKAGES='' Rscript env/install_r_packages_v3_compact.rOr to skip and continue with successful packages:  SKIP_PACKAGES='zlibbioc|GenomicFeatures|KEGG.db|clusterProfiler|enrichplot|pathview|viridis|readr|writexl|msigdbr' Rscript env/install_r_packages_v3_compact.rFor detailed information, see:  - Log file: r_install_compact.log
