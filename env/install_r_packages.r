@@ -53,7 +53,7 @@ log_console <- function(msg) {
 
 setup_environment <- function() {
   cat("╔═══════════════════════════════════════════════════════════════════════════╗\n")
-  cat("║         R Package Installation - Compact v3                               ║\n")
+  cat("║                           R Package Installation                          ║\n")
   cat("╚═══════════════════════════════════════════════════════════════════════════╝\n")
 
   log_file("Installation started at", "INFO")
