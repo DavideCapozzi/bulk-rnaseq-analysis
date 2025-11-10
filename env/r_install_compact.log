@@ -165,3 +165,77 @@ Or to skip and continue with successful packages:
 For detailed information, see: 
   - Log file: r_install_compact.log 
  
+[2025-11-08 16:43:49] [INFO] Installation started at 
+[2025-11-08 16:43:49] [INFO] R Version: R version 4.5.2 (2025-10-31) 
+[2025-11-08 16:43:49] [INFO] Working directory: /home/davidec/projects/bulk-rnaseq-analysis/env 
+[2025-11-08 16:43:49] [INFO] Library paths: /home/davidec/projects/bulk-rnaseq-analysis/env/renv/library/linux-ubuntu-jammy/R-4.5/x86_64-conda-linux-gnu, /home/davidec/.cache/R/renv/sandbox/linux-ubuntu-jammy/R-4.5/x86_64-conda-linux-gnu/51074abc 
+✓ Environment ready 
+ 
+[SETUP] Installing/loading BiocManager... 
+✓ BiocManager ready 
+ 
+[PHASE 1] Critical Base Dependencies... 
+[2025-11-08 16:43:52] [SKIP] BiocGenerics - Already installed (v0.56.0) 
+  ✓ BiocGenerics
+[2025-11-08 16:43:53] [SKIP] S4Vectors - Already installed (v0.48.0) 
+  ✓ S4Vectors
+[2025-11-08 16:43:53] [SKIP] IRanges - Already installed (v2.44.0) 
+  ✓ IRanges
+[2025-11-08 16:43:53] [SKIP] XVector - Already installed (v0.50.0) 
+  ✓ XVector
+[2025-11-08 16:43:54] [SKIP] GenomeInfoDb - Already installed (v1.46.0) 
+  ✓ GenomeInfoDb
+[2025-11-08 16:43:54] [WARNING] zlibbioc - Warning: package ‘zlibbioc’ is not available for Bioconductor version '3.22'
+
+A version of this package for your version of R might be available elsewhere,
+see the ideas at
+https://cran.r-project.org/doc/manuals/r-patched/R-admin.html#Installing-packages 
+[2025-11-08 16:43:54] [ERROR] zlibbioc - Verification FAILED 
+[2025-11-08 16:43:54] [ERROR] zlibbioc - Load error: there is no package called ‘zlibbioc’ 
+  ✗ zlibbioc
+  Completed: 5/6 packages 
+ 
+[PHASE 2] Core DE Analysis Packages... 
+[2025-11-08 16:43:54] [SKIP] tximport - Already installed (v1.38.1) 
+  ✓ tximport
+[2025-11-08 16:43:58] [SKIP] DESeq2 - Already installed (v1.50.0) 
+  ✓ DESeq2
+[2025-11-08 16:43:59] [SKIP] edgeR - Already installed (v4.8.0) 
+  ✓ edgeR
+[2025-11-08 16:43:59] [SKIP] limma - Already installed (v3.66.0) 
+  ✓ limma
+[2025-11-08 16:44:01] [WARNING] GenomicFeatures - Warning: installation of package ‘cigarillo’ had non-zero exit status 
+[2025-11-08 16:44:01] [ERROR] GenomicFeatures - Verification FAILED 
+[2025-11-08 16:44:01] [ERROR] GenomicFeatures - Load error: there is no package called ‘GenomicFeatures’ 
+  ✗ GenomicFeatures
+[2025-11-08 16:44:01] [SKIP] SummarizedExperiment - Already installed (v1.40.0) 
+  ✓ SummarizedExperiment
+[2025-11-08 16:45:21] [INFO] Installation started at 
+[2025-11-08 16:45:21] [INFO] R Version: R version 4.5.2 (2025-10-31) 
+[2025-11-08 16:45:21] [INFO] Working directory: /home/davidec/projects/bulk-rnaseq-analysis/env 
+[2025-11-08 16:45:21] [INFO] Library paths: /home/davidec/projects/bulk-rnaseq-analysis/env/renv/library/linux-ubuntu-jammy/R-4.5/x86_64-conda-linux-gnu, /home/davidec/.cache/R/renv/sandbox/linux-ubuntu-jammy/R-4.5/x86_64-conda-linux-gnu/51074abc 
+✓ Environment ready 
+ 
+[SETUP] Installing/loading BiocManager... 
+✓ BiocManager ready 
+ 
+[PHASE 1] Critical Base Dependencies... 
+[2025-11-08 16:45:24] [SKIP] BiocGenerics - Already installed (v0.56.0) 
+  ✓ BiocGenerics
+[2025-11-08 16:45:25] [SKIP] S4Vectors - Already installed (v0.48.0) 
+  ✓ S4Vectors
+[2025-11-08 16:45:25] [SKIP] IRanges - Already installed (v2.44.0) 
+  ✓ IRanges
+[2025-11-08 16:45:25] [SKIP] XVector - Already installed (v0.50.0) 
+  ✓ XVector
+[2025-11-08 16:45:26] [SKIP] GenomeInfoDb - Already installed (v1.46.0) 
+  ✓ GenomeInfoDb
+[2025-11-08 16:45:26] [ERROR] zlibbioc - Installation error: ignoring SIGPIPE signal 
+[2025-11-08 16:45:26] [ERROR] zlibbioc - Verification FAILED 
+[2025-11-08 16:45:26] [ERROR] zlibbioc - Load error: there is no package called ‘zlibbioc’ 
+  ✗ zlibbioc
+  Completed: 5/6 packages 
+ 
+[PHASE 2] Core DE Analysis Packages... 
+[2025-11-08 16:45:26] [SKIP] tximport - Already installed (v1.38.1) 
+  ✓ tximport

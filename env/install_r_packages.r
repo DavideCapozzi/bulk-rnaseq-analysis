@@ -52,9 +52,9 @@ log_console <- function(msg) {
 ################################################################################
 
 setup_environment <- function() {
-  cat("╔═══════════════════════════════════════════════════════════════════════════╗")
-  cat("║         R Package Installation - Compact v3                               ║")
-  cat("╚═══════════════════════════════════════════════════════════════════════════╝")
+  cat("╔═══════════════════════════════════════════════════════════════════════════╗\n")
+  cat("║         R Package Installation - Compact v3                               ║\n")
+  cat("╚═══════════════════════════════════════════════════════════════════════════╝\n")
 
   log_file("Installation started at", "INFO")
   log_file(paste("R Version:", R.version$version.string), "INFO")
@@ -312,9 +312,9 @@ print_summary <- function(results) {
   failed <- sum(sapply(results, function(x) !is.na(x$success) && !x$success))
   skipped <- sum(sapply(results, function(x) is.na(x$success)))
 
-  cat("╔═══════════════════════════════════════════════════════════════════════════╗")
-  cat("║                         INSTALLATION SUMMARY                              ║")
-  cat("╚═══════════════════════════════════════════════════════════════════════════╝")
+  cat("╔═══════════════════════════════════════════════════════════════════════════╗\n")
+  cat("║                         INSTALLATION SUMMARY                              ║\n")
+  cat("╚═══════════════════════════════════════════════════════════════════════════╝\n")
   log_console(sprintf("  Total packages:    %3d", total))
   log_console(sprintf("  ✓ Successful:      %3d", success))
   log_console(sprintf("  ✗ Failed:          %3d", failed))
