@@ -5,76 +5,34 @@ channels:
   - defaults
 
 dependencies:
-  # === CORE R & BUILD TOOLS ===
-  - r-base=4.5.2
-  - r-essentials
-  - r-recommended
-  - gfortran_linux-64
-  - gcc_linux-64
-  - gxx_linux-64
-  - make
-  - cmake
-  - pkg-config
-  - autoconf
-  - automake
-  - libtool
-
-  # === SYSTEM LIBRARIES (TESTED VERSIONS) ===
-  - zlib
+  # === R CORE ===
+  - r-base=4.3.3
+  
+  # === SYSTEM LIBRARIES ===
+  - zlib=1.2.13
   - libxml2
   - libcurl
   - openssl
   - libpng
-  - libjpeg-turbo
-  - libtiff
+  - cairo
   - harfbuzz
   - fribidi
-  - libfreetype
-  - cairo
-  - gsl
-  - openblas
-  - lapack
-  - bzip2
-  - xz
-  - pcre2
-  - ncurses
-  - readline
-  - libffi
-  - sqlite
-
-  # === BIOINFORMATICS TOOLS ===
+  
+  # === R PACKAGES BASE ===
+  - r-readxl
+  - r-openxlsx
+  - r-tidyverse
+  - r-ggplot2
+  - r-ggrepel
+  
+  # === BIOCONDUCTOR ===
+  - bioconductor-clusterprofiler
+  - bioconductor-org.hs.eg.db
+  - bioconductor-reactomepa
+  - bioconductor-enrichplot
+  
+  # === BIOINFORMATICS ESSENTIALS ===
   - salmon
   - fastqc
   - multiqc
   - samtools
-  - bedtools
-  - cutadapt
-  - bowtie2
-  - bwa
-  - bcftools
-
-  # === PYTHON 3.12 DATA SCIENCE ===
-  - python=3.12
-  - numpy
-  - pandas
-  - scipy
-  - scikit-learn
-  - matplotlib
-  - seaborn
-  - jupyter
-  - jupyterlab
-  - ipython
-
-  # === R UTILITIES ===
-  - r-devtools
-  - r-remotes
-  - r-renv
-
-variables:
-  PKG_CONFIG_PATH: $PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig
-  LD_LIBRARY_PATH: $PREFIX/lib:$LD_LIBRARY_PATH
-  CFLAGS: -I$PREFIX/include
-  LDFLAGS: -L$PREFIX/lib
-  CXXFLAGS: -I$PREFIX/include
-  FFLAGS: -I$PREFIX/include -L$PREFIX/lib
-  FCFLAGS: -I$PREFIX/include -L$PREFIX/lib
