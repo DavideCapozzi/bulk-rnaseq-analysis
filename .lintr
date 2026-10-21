@@ -1,0 +1,12 @@
+linters: linters_with_defaults(
+    line_length_linter(120),
+    object_name_linter(styles = c("snake_case", "symbols")),
+    object_length_linter(40),
+    return_linter = NULL
+  )
+encoding: "UTF-8"
+exclusions: list(
+    "tests/fixtures/make_fixtures.R" = list(line_length_linter = Inf),
+    # helpers in tests/testthat/helper-*.R are sourced by testthat, which lintr cannot see
+    "tests/testthat" = list(object_usage_linter = Inf)
+  )

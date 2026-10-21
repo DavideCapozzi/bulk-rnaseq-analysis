@@ -1,0 +1,7 @@
+sample_id	input_column	condition	donor	donor_source
+d1_ctrl	D1_control	control	1	inferred from sample name [I]
+d2_ctrl	D2_control	control	2	inferred from sample name [I]
+d3_ctrl	D3_control	control	3	inferred from sample name [I]
+d1_trt	D1_treated	treated	1	inferred from sample name [I]
+d2_trt	D2_treated	treated	2	inferred from sample name [I]
+d3_trt	D3_treated	treated	3	inferred from sample name [I]

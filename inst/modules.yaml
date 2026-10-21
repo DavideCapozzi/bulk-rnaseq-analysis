@@ -1,0 +1,269 @@
+# Module registry (draft, phase 2).
+# Each entry declares what a module needs and produces. The Snakefile reads this file to decide which modules
+# run; skipped modules are listed in 00_provenance/run_manifest.json with the reason built from these fields.
+#
+# Fields
+#   number           fixed output folder prefix (NN_<name>); never reused
+#   function         exported R function: function(objects, params, resources) -> list(tables, figures, meta)
+#   requires         all of these data levels must be available
+#   requires_any     at least one of these levels must be available (optional field)
+#   optional         used when available, never required
+#   resources        keys of config$resources that must be present in the cache
+#   conditions       extra checks evaluated by resolve_capabilities() (see R/capabilities.R)
+#   provides         data levels this module adds for downstream modules
+#   params           config key under modules.<name> (defaults live in config/schema.yaml)
+#   outputs          tables written under NN_<name>/tables/ (figures listed separately)
+#   caveats          statistical notes copied to docs/MODULES.md and to each table's .meta.json
+
+levels: [counts, abundance, normalized, contrast_stats, ranked, coverage, qc]
+
+modules:
+  qc:
+    number: 2
+    function: run_qc
+    requires_any: [counts, qc]
+    optional: [abundance]
+    resources: [annotation]
+    conditions: []
+    provides: []
+    params: modules.qc
+    outputs: [qc_summary, expression_qc, top_genes]
+    figures: [qc_metrics]
+    caveats:
+      - "Expression QC uses assigned reads per sample; percentages are of the library size, not of raw reads."
+
+  pca:
+    number: 3
+    function: run_pca
+    requires: [counts]
+    optional: [abundance, qc]
+    resources: [annotation]
+    conditions: [{min_samples: 3}]
+    provides: []
+    params: modules.pca
+    outputs: [pca_summary, pca_scores, pca_scores_log2tpm, sample_correlations, sample_distances,
+              pc1_vs_qc, pc1_loading_vs_gene_features, pc1_top_loadings]
+    figures: [pca, sample_correlation, pc1_loading_vs_gene_span]
+    caveats:
+      - "With n samples the PCA has at most n - 1 components; correlations with QC metrics are descriptive."
+      - "'separates' labels the factor with the largest mean difference on a PC; it is not a test."
+
+  markers:
+    number: 4
+    function: run_markers
+    requires: [counts]
+    optional: [abundance]
+    resources: [annotation, marker_panels]
+    conditions: []
+    provides: []
+    params: modules.markers
+    outputs: [marker_expression, marker_panel_scores, marker_ratios]
+    figures: [markers_heatmap, marker_panels]
+    caveats:
+      - "Panels are starting markers, not validated signatures. CPM are library-size only (no TMM) unless stated."
+
+  contamination:
+    number: 5
+    function: run_contamination
+    requires: [counts]
+    resources: [annotation, contaminant_profiles, gene_sets]
+    conditions: []
+    provides: []
+    params: modules.contamination
+    outputs: [contamination_scores, contamination_profile_genes, profile_ratio_consistency,
+              profile_excess, contaminant_mask]
+    figures: [contamination_profiles]
+    caveats:
+      - "Ratio consistency across a profile's genes is compatible with, not proof of, a single source."
+
+  contamination_sets:
+    number: 6
+    function: run_contamination_sets
+    requires: [ranked]
+    resources: [contaminant_profiles]
+    conditions: []
+    provides: []
+    params: modules.contamination_sets
+    outputs: [contamination_set_tests]
+    figures: []
+    caveats:
+      - "Gene-set test of contaminant profiles on one contrast; p-values follow the contrast's inference_scope."
+
+  reference:
+    number: 7
+    function: run_reference
+    requires_any: [counts, contrast_stats]
+    optional: [contrast_stats]
+    resources: [annotation, reference_profiles]
+    conditions: []
+    provides: []
+    params: modules.reference
+    outputs: [reference_profiles, reference_universe, universe_exclusions, reference_axis]
+    figures: []
+    caveats:
+      - "Reference profiles come from other platforms and units (nTPM, nCPM): thresholds are coarse filters."
+
+  deconvolution:
+    number: 8
+    function: run_deconvolution
+    requires_any: [abundance, counts]
+    resources: [reference_profiles]
+    conditions: []
+    provides: []
+    params: modules.deconvolution
+    outputs: [deconvolution, deconvolution_variants]
+    figures: []
+    caveats:
+      - "Relative proportions between reference components; weights do not sum to 1 across platforms."
+      - "Report the range across variants, not a point estimate."
+
+  contrasts:
+    number: 9
+    function: run_contrasts
+    requires: [counts]
+    resources: [annotation]
+    conditions: [{contrasts_defined: true}]
+    provides: [contrast_stats, ranked]
+    params: modules.contrasts
+    outputs: [contrast_stats, contrast_spread, key_genes, normalization_factors, reference_neutrality,
+              thinning_replicates]
+    figures: []
+    caveats:
+      - "Log-CPM differences are descriptive estimators; no p-values are produced (assert_df not involved)."
+      - "Shrunken estimators fitted with 1 residual df are flagged exploratory and can be non-informative."
+
+  de_test:
+    number: 10
+    function: run_de_test
+    requires: [counts]
+    resources: [annotation]
+    conditions: [{design_df_min: 1}]
+    provides: [contrast_stats, ranked]
+    params: modules.de_test
+    outputs: [de_results, design_summary, provider_comparison]
+    figures: []
+    caveats:
+      - "assert_df(): error at 0 residual df, warning and exploratory flag at 1."
+
+  concordance:
+    number: 11
+    function: run_concordance
+    requires: [contrast_stats]
+    optional: [counts]
+    resources: []
+    conditions: [{min_contrasts: 2}, {contrast_pairs_defined: true}]
+    provides: []
+    params: modules.concordance
+    outputs: [concordance_summary, concordant_genes, concordance_by_stratum, universe_grid,
+              power_simulation, power_simulation_summary]
+    figures: [concordance_scatter, concordance_by_stratum, power_simulation]
+    caveats:
+      - "Sign concordance between two contrasts measures shared effects; its power depends on the expression stratum."
+      - "Power simulation resamples genes (binomial thinning), not biological units."
+
+  geneset_test:
+    number: 12
+    function: run_geneset_test
+    requires: [ranked]
+    resources: [gene_sets]
+    conditions: []
+    provides: []
+    params: modules.geneset_test
+    outputs: [geneset_results, geneset_concordance, geneset_concordant_sets]
+    figures: [nes_concordance, hallmark_heatmap]
+    caveats:
+      - "fgsea pre-ranked permutes genes: p-values are ranking_only."
+      - "cameraPR accounts for inter-gene correlation but still tests genes for a given contrast, not samples: with one library per condition it is conditional_on_contrast."
+
+  ora:
+    number: 13
+    function: run_ora
+    requires: [contrast_stats]
+    resources: [kegg_pathways]
+    conditions: [{significance_available: true}]
+    provides: []
+    params: modules.ora
+    outputs: [ora_input_genes, ora_go_bp, ora_go_cc, ora_go_mf, ora_kegg, ora_reactome]
+    figures: [ora_dotplots]
+    caveats:
+      - "Hypergeometric p-values treat genes as independent units; the universe is the set of tested genes."
+
+  volcano:
+    number: 14
+    function: run_volcano
+    requires: [contrast_stats]
+    resources: []
+    conditions: [{significance_available: true}]
+    provides: []
+    params: modules.volcano
+    outputs: [volcano_points]
+    figures: [volcano]
+    caveats:
+      - "The y axis shows the significance metric under its own name (padj or posterior probability)."
+
+  signatures:
+    number: 15
+    function: run_signatures
+    requires: [counts]
+    resources: [gene_sets]
+    conditions: []
+    provides: []
+    params: modules.signatures
+    outputs: [signature_scores]
+    figures: [signature_scores]
+    caveats:
+      - "z-score is relative to the samples in the run; singscore and ssGSEA are within-sample ranks."
+
+  pairing:
+    number: 16
+    function: run_pairing
+    requires: [counts]
+    optional: [abundance]
+    resources: [annotation, sex_genes, fingerprint_genes]
+    conditions: []
+    provides: []
+    params: modules.pairing
+    outputs: [sex_genes, sex_summary, fingerprint_genes, fingerprint_distances, male_fraction]
+    figures: [pairing_sex_fingerprint]
+    caveats:
+      - "Expression-based fingerprints are clues, not genotype evidence; expression of polymorphic genes also depends on cell composition."
+
+  power:
+    number: 17
+    function: run_power
+    requires: [counts]
+    resources: []
+    conditions: [{design_df_min: 1, scope: bcv}]
+    provides: []
+    params: modules.power
+    outputs: [bcv, sample_size_grid]
+    figures: []
+    caveats:
+      - "BCV from 1 residual df has a per-gene 95% interval spanning more than an order of magnitude."
+
+  coverage:
+    number: 18
+    function: run_coverage
+    requires: [coverage]
+    resources: [annotation]
+    conditions: []
+    provides: []
+    params: modules.coverage
+    outputs: [strand_assignment, coverage_features, coverage_targets, coverage_target_summary,
+              coverage_target_exons, coverage_totals]
+    figures: [coverage_target]
+    caveats:
+      - "bedGraph values from STAR are RPM of mapped reads; ratios between samples depend on that normalisation."
+
+  covariates:
+    number: 19
+    function: run_covariates
+    requires: [contrast_stats]
+    resources: [annotation, transcript_fasta]
+    conditions: [{min_contrasts: 2}]
+    provides: []
+    params: modules.covariates
+    outputs: [gene_covariates, covariate_residual_concordance, covariate_correlations]
+    figures: []
+    caveats:
+      - "Regressing lfc on length, GC and expression also removes biology correlated with them."

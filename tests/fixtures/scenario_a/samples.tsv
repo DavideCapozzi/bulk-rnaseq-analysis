@@ -1,0 +1,5 @@
+sample_id	input_column	condition	batch	label
+s1	lib_A1	treated	b1	A1 treated
+s2	lib_A2	treated	b2	A2 treated
+s3	lib_B1	control	b1	B1 control
+s4	lib_B2	control	b2	B2 control

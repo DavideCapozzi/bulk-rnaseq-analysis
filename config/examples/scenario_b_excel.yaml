@@ -1,0 +1,32 @@
+# Scenario (b): raw and provider-normalised counts from Excel workbooks (gene symbols as IDs).
+project:
+  name: example_excel
+  output_dir: ../../results/example_excel
+toolkit:
+  version: 0.1.0
+samples:
+  sheet: ../../tests/fixtures/scenario_b/samples.tsv
+  factors:
+    condition: [control, treated]
+    donor: ["1", "2", "3"]
+inputs:
+  base_dir: ../../tests/fixtures/scenario_b
+  counts: {adapter: matrix, file: raw_counts.xlsx, sheet: Sheet1, id_column: Geneid}
+  normalized:
+    adapter: matrix
+    file: normalized_counts.xlsx
+    sheet: NormalizedCount
+    id_column: Gene_ID
+    description: "Provider: DESeq2 median-of-ratios on filtered genes (to be checked by check_normalization)."
+annotation:
+  id_type: gene_symbol
+resources:
+  cache_dir: ../../results/example_excel_resources
+  items:
+    gtf: {source: "file://../../tests/fixtures/resources/annotation.gtf.gz", kind: gtf}
+    gene_sets: {source: "file://../../tests/fixtures/resources/gene_sets.tsv.gz", kind: msigdb_export}
+designs:
+  - {id: unpaired, formula: "~ condition", contrast: [condition, treated, control]}
+  - {id: paired, formula: "~ donor + condition", contrast: [condition, treated, control]}
+modules:
+  de_test: {prefilter: {min_count: 10, min_samples: 3}}

@@ -1,0 +1,22 @@
+# Scenario (c): differential-expression tables only (one DESeq2 workbook, one NOISeq table).
+project:
+  name: example_de_only
+  output_dir: ../../results/example_de_only
+toolkit:
+  version: 0.1.0
+inputs:
+  base_dir: ../../tests/fixtures/scenario_c
+  contrast_tables:
+    - {id: treated_vs_control, adapter: deseq2, file: comparison.xlsx, sheet: DESeq2_results,
+       numerator: treated, denominator: control}
+    - {id: treated_vs_control_noiseq, adapter: noiseq, file: noiseq_results.tsv,
+       numerator: treated, denominator: control}
+annotation:
+  id_type: gene_symbol
+thresholds: {padj: 0.05, abs_fold_change: 1.5, posterior_prob: 0.8}
+resources:
+  cache_dir: ../../results/example_de_only_resources
+  items:
+    gtf: {source: "file://../../tests/fixtures/resources/annotation.gtf.gz", kind: gtf}
+    gene_sets: {source: "file://../../tests/fixtures/resources/gene_sets.tsv.gz", kind: msigdb_export}
+    kegg_pathways: {source: "file://../../tests/fixtures/resources/kegg_pathways.tsv.gz", kind: kegg_pathways}

@@ -1,0 +1,50 @@
+# Scenario (a): STAR counts + StringTie abundances + bedGraph + MultiQC, from synthetic fixtures.
+project:
+  name: example_star
+  organism: human
+  output_dir: ../../results/example_star
+  seed: 1
+toolkit:
+  version: 0.1.0
+samples:
+  sheet: ../../tests/fixtures/scenario_a/samples.tsv
+  factors:
+    condition: [control, treated]
+    batch: [b1, b2]
+  label_column: label
+inputs:
+  base_dir: ../../tests/fixtures/scenario_a
+  counts:
+    adapter: star_reads_per_gene
+    files: "counts/{input}_ReadsPerGene.out.tab"
+    strand_column: reverse
+  abundance:
+    adapter: stringtie_gene_abundance
+    files: "abundance/{input}_gene_abundance.tab"
+    on_duplicate: sum
+  coverage:
+    files: "coverage/{input}_Signal.{multiplicity}.{strand_file}.out.bg"
+    multiplicity: [Unique]
+    strand_files: auto
+  qc:
+    multiqc:
+      - {id: aligned, file: multiqc/multiqc_report.html}
+  checksums:
+    file: md5sum.txt
+    exclude: ["*.fastq.gz"]
+resources:
+  cache_dir: ../../results/example_star_resources
+  items:
+    gtf: {source: "file://../../tests/fixtures/resources/annotation.gtf.gz", kind: gtf}
+    gene_sets: {source: "file://../../tests/fixtures/resources/gene_sets.tsv.gz", kind: msigdb_export}
+contrasts:
+  - {id: treated_vs_control_b1, numerator: [s1], denominator: [s3]}
+  - {id: treated_vs_control_b2, numerator: [s2], denominator: [s4]}
+contrast_pairs:
+  - {id: treatment, first: treated_vs_control_b1, second: treated_vs_control_b2}
+designs:
+  - {id: additive, formula: "~ batch + condition", contrast: [condition, treated, control]}
+modules:
+  geneset_test: {methods: [camera_pr, fgsea], collections: [H]}
+export:
+  xlsx: true

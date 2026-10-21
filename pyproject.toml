@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-include = ["*.smk", "workflow/Snakefile", "bin/bulkrnaseq"]
+extend-exclude = ["workflow/Snakefile", "workflow/rules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]

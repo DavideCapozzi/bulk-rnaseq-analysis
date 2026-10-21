@@ -1,0 +1,9 @@
+# Local project repository: tracks the analysis configuration only (no remote needed).
+# Provider data, resource caches and results stay out; bulkrnaseq regenerates results from config + input.
+/*
+!/.gitignore
+!/analysis/
+/analysis/*
+!/analysis/*/
+/analysis/*/*
+!/analysis/*/config/

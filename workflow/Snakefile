@@ -1,0 +1,48 @@
+# bulkrnaseq workflow. Usually started through bin/bulkrnaseq (run, plan, fetch); direct use:
+#   snakemake -s workflow/Snakefile --configfile <project>/config.yaml --cores 1
+#   snakemake -s workflow/Snakefile --configfile <project>/config.yaml --cores 1 fetch_resources   (explicit download step)
+# The run stops before building the DAG when toolkit.version differs from DESCRIPTION or the checkout is dirty;
+# BULKRNASEQ_DEV=1 turns both into warnings (recorded in 00_provenance/toolkit.json).
+import json
+import os
+import shutil
+import sys
+
+import yaml
+from snakemake.exceptions import WorkflowError
+from snakemake.logging import logger
+from snakemake.utils import validate
+
+sys.path.insert(0, os.path.join(workflow.basedir, "lib"))
+from bulkrnaseq_toolkit import ToolkitError, check_toolkit, dev_mode  # noqa: E402
+
+REPO = os.path.abspath(os.path.join(workflow.basedir, ".."))
+validate(config, os.path.join(REPO, "config", "schema.yaml"))
+
+try:
+    TOOLKIT, TOOLKIT_PROBLEMS = check_toolkit(config["toolkit"]["version"], REPO, dev_mode())
+except ToolkitError as e:
+    raise WorkflowError(f"toolkit check failed: {e}")
+for problem in TOOLKIT_PROBLEMS:
+    logger.warning(f"development mode: {problem}")
+
+RSCRIPT = os.environ.get("BULKRNASEQ_RSCRIPT") or shutil.which("Rscript")
+if RSCRIPT is None:
+    raise WorkflowError("Rscript not found: put the toolkit environment on PATH or set BULKRNASEQ_RSCRIPT")
+
+CONFIG_DIR = os.path.dirname(os.path.abspath(workflow.configfiles[0]))
+OUT = os.path.normpath(os.path.join(CONFIG_DIR, config["project"]["output_dir"]))
+CACHE = os.path.normpath(os.path.join(CONFIG_DIR, config.get("resources", {}).get("cache_dir", "resources")))
+PROV = os.path.join(OUT, "00_provenance")
+RESOLVED = os.path.join(PROV, "config_resolved.yaml")
+TOOLKIT_JSON = os.path.join(PROV, "toolkit.json")
+STEP = os.path.join(REPO, "workflow", "scripts", "run_step.R")
+
+
+include: "rules/setup.smk"
+include: "rules/analysis.smk"
+
+
+rule all:
+    input:
+        os.path.join(OUT, "report", "summary.md"),

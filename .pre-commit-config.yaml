@@ -1,0 +1,30 @@
+# Local hooks only: every tool comes from the toolkit environment through tools/hook.sh; nothing is downloaded.
+# Set up once per clone (from the toolkit environment): pre-commit install
+# Project-specific patterns for the data guard (kept outside the repository): see tools/check_no_data.py.
+repos:
+  - repo: local
+    hooks:
+      - id: data-guard
+        name: data guard (data files, absolute paths, project patterns)
+        entry: tools/hook.sh python tools/check_no_data.py
+        language: script
+      - id: ruff-check
+        name: ruff check
+        entry: tools/hook.sh ruff check --force-exclude
+        language: script
+        types_or: [python]
+      - id: ruff-format
+        name: ruff format (check only)
+        entry: tools/hook.sh ruff format --check --force-exclude
+        language: script
+        types_or: [python]
+      - id: r-style
+        name: styler (check only)
+        entry: tools/hook.sh Rscript tools/check_r.R style
+        language: script
+        types: [r]
+      - id: r-lint
+        name: lintr
+        entry: tools/hook.sh Rscript tools/check_r.R lint
+        language: script
+        types: [r]

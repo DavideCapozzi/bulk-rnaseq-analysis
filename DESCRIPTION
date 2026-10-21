@@ -1,0 +1,49 @@
+Package: bulkrnaseq
+Type: Package
+Title: Reproducible Analysis of Bulk RNA-seq Provider Outputs
+Version: 0.1.0
+Authors@R:
+    person("Davide", "Capozzi", email = "capozzi.davide99@gmail.com", role = c("aut", "cre"))
+Description: Turns the outputs of an RNA-seq provider (gene counts, abundances,
+    normalised counts, differential-expression tables, coverage tracks, QC
+    reports) into canonical objects and a fixed set of documented tables and
+    figures. Analysis modules declare the data levels they need, so a project
+    with only a differential-expression table and a project with raw counts
+    use the same workflow. Statistical guardrails are enforced in code: no
+    sample-level p-value without residual degrees of freedom, seeded random
+    steps, and an explicit inference scope for every p-value.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.4)
+Imports:
+    data.table,
+    DESeq2,
+    edgeR,
+    ggplot2,
+    ggrepel,
+    jsonlite,
+    methods,
+    openxlsx,
+    readxl,
+    S4Vectors,
+    stats,
+    SummarizedExperiment,
+    tools,
+    utils,
+    withr,
+    yaml,
+    zip
+Suggests:
+    AnnotationDbi,
+    apeglm,
+    clusterProfiler,
+    covr,
+    KEGGREST,
+    limma,
+    org.Hs.eg.db,
+    ReactomePA,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0

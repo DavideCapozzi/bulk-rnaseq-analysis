@@ -1,0 +1,17 @@
+.Rproj.user/
+.Rhistory
+.RData
+*.Rproj
+results/
+.snakemake/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+*.tar.gz
+*.Rcheck/
+Rplots.pdf
+.Renviron
+.vscode/
+.DS_Store
+# Windows "downloaded from the internet" marks that WSL shows as files
+*:Zone.Identifier

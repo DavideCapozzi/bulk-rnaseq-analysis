@@ -1,0 +1,13 @@
+# Organism table. The only place where organism-specific identifiers may appear in the package
+# (a test greps R/ and workflow/ for them). Only 'human' is implemented and tested.
+human:
+  species: Homo sapiens
+  orgdb: org.Hs.eg.db
+  kegg_code: hsa
+  reactome_organism: human
+  msigdb_species: Homo sapiens
+  ensembl_gene_prefix: ENSG
+  chromosome_y: "Y"
+  chromosome_x: "X"
+  chromosome_mito: MT
+  mito_symbol_prefix: MT-

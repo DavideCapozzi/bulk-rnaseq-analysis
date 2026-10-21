@@ -1,0 +1,507 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+# Draft (phase 2). Validated by snakemake.utils.validate (defaults are filled in) and by
+# bulkrnaseq::validate_config(). docs/CONFIG.md is generated from this file.
+description: Project configuration for the bulkrnaseq toolkit.
+type: object
+additionalProperties: false
+required: [project, toolkit, inputs]
+# samples is required whenever a sample-level input (counts, abundance, normalized, coverage, qc) is
+# configured; bulkrnaseq::validate_config() enforces this cross-field rule.
+
+$defs:
+  file_or_pattern:
+    description: >
+      Path relative to inputs.base_dir. May contain the placeholder {input}, replaced by each value of the
+      sample sheet column input_column (one file per sample).
+    type: string
+  gene_list_ref:
+    description: Key of a gene list in resources.gene_lists, or an inline list of gene symbols.
+    oneOf:
+      - type: string
+      - type: array
+        items: {type: string}
+  seed:
+    type: integer
+    minimum: 0
+  threshold_list:
+    type: array
+    items: {type: number, minimum: 0}
+
+properties:
+  project:
+    type: object
+    additionalProperties: false
+    required: [name, output_dir]
+    properties:
+      name: {type: string, pattern: "^[a-z0-9_]+$", description: Short project identifier (snake_case).}
+      organism: {type: string, enum: [human], default: human, description: Key of inst/organisms.yaml.}
+      output_dir: {type: string, description: Output folder; relative paths resolve against the config file.}
+      seed: {$ref: "#/$defs/seed", default: 1, description: Default seed for every random step.}
+
+  toolkit:
+    type: object
+    additionalProperties: false
+    required: [version]
+    description: >
+      Toolkit release this config is written for. The workflow stops before running when it differs from the
+      Version field of the checked-out DESCRIPTION or when the checkout has uncommitted changes; development
+      mode (BULKRNASEQ_DEV=1, bulkrnaseq run --dev) turns both into warnings recorded in the run manifest.
+    properties:
+      version: {type: string, pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$", description: "Toolkit version, e.g. 0.1.0."}
+
+  samples:
+    type: object
+    additionalProperties: false
+    required: [sheet]
+    properties:
+      sheet:
+        type: string
+        description: >
+          TSV with at least sample_id and input_column. sample_id is the identifier used in every output;
+          input_column links the sample to a file ({input} placeholder) or to a column of a matrix input.
+          Other columns are sample metadata; metadata is never parsed from names.
+          Optional column inputs_available (comma-separated data levels, default: all configured) marks samples
+          present only in some inputs, e.g. 'qc' for libraries with QC reports but no counts.
+      factors:
+        description: Sample sheet columns used as experimental factors, with level order (reference first).
+        type: object
+        additionalProperties:
+          type: array
+          items: {type: string}
+        default: {}
+      label_column:
+        type: string
+        description: Optional sample sheet column used as plot label.
+
+  inputs:
+    type: object
+    additionalProperties: false
+    properties:
+      base_dir: {type: string, description: Folder all input paths are relative to.}
+      counts:
+        type: object
+        additionalProperties: false
+        required: [adapter]
+        properties:
+          adapter: {type: string, enum: [star_reads_per_gene, matrix]}
+          files: {$ref: "#/$defs/file_or_pattern"}
+          file: {type: string}
+          sheet: {type: [string, "null"], default: null}
+          id_column: {type: string}
+          strand_column:
+            type: string
+            enum: [unstranded, forward, reverse, single]
+            default: single
+            description: >
+              STAR ReadsPerGene.out.tab has 4 columns (unstranded, forward, reverse); 'single' is for the
+              2-column 'deseq2-ready' files where the provider already chose the strand.
+          on_duplicate: {type: string, enum: [error, sum, first], default: error}
+      abundance:
+        type: object
+        additionalProperties: false
+        required: [adapter]
+        properties:
+          adapter: {type: string, enum: [stringtie_gene_abundance, matrix]}
+          files: {$ref: "#/$defs/file_or_pattern"}
+          file: {type: string}
+          sheet: {type: [string, "null"], default: null}
+          id_column: {type: string}
+          kind: {type: string, enum: [tpm, fpkm], description: For the matrix adapter only.}
+          on_duplicate: {type: string, enum: [error, sum, first], default: error}
+      normalized:
+        type: object
+        additionalProperties: false
+        required: [adapter, file, id_column]
+        properties:
+          adapter: {type: string, enum: [matrix]}
+          file: {type: string}
+          sheet: {type: [string, "null"], default: null}
+          id_column: {type: string}
+          description: {type: string, description: How the provider normalised (free text, copied to the ingest report).}
+      contrast_tables:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, adapter, file]
+          properties:
+            id: {type: string, pattern: "^[A-Za-z0-9_]+$"}
+            adapter: {type: string, enum: [deseq2, noiseq, generic]}
+            file: {type: string}
+            sheet: {type: [string, "null"], default: null}
+            columns:
+              description: Mapping canonical column -> input column; required for 'generic'.
+              type: object
+              additionalProperties: {type: string}
+            numerator: {type: string}
+            denominator: {type: string}
+            df_residual: {type: [integer, "null"], default: null}
+      coverage:
+        type: object
+        additionalProperties: false
+        required: [files]
+        properties:
+          adapter: {type: string, enum: [bedgraph], default: bedgraph}
+          files:
+            description: Pattern with {input}, {multiplicity} and {strand_file}.
+            type: string
+          multiplicity: {type: array, items: {type: string}, default: [Unique]}
+          strand_files:
+            description: Map strand_file token -> genomic strand ('+'/'-'), or 'auto' to infer it from strand_reference_genes.
+            oneOf:
+              - {type: string, enum: [auto]}
+              - {type: object, additionalProperties: {type: string, enum: ["+", "-"]}}
+            default: auto
+          strand_reference_genes: {$ref: "#/$defs/gene_list_ref", default: strand_reference_genes}
+      qc:
+        type: object
+        additionalProperties: false
+        properties:
+          multiqc:
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, file]
+              properties:
+                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                file: {type: string, description: MultiQC HTML report or multiqc_data.json.}
+          sample_name_pattern:
+            type: string
+            default: "{input}"
+            description: How MultiQC sample names relate to input_column (regex with {input}).
+          tables:
+            description: Extra QC tables computed upstream (e.g. light FASTQ metrics), imported as is.
+            type: array
+            items:
+              type: object
+              required: [file, sample_column]
+              properties:
+                file: {type: string}
+                sample_column: {type: string}
+                sample_pattern: {type: string}
+      checksums:
+        type: object
+        additionalProperties: false
+        required: [file]
+        properties:
+          file: {type: string}
+          exclude: {type: array, items: {type: string}, default: []}
+
+  resources:
+    type: object
+    default: {}
+    additionalProperties: false
+    properties:
+      cache_dir: {type: string, default: resources}
+      items:
+        description: >
+          Resources fetched by the fetch_resources rule into cache_dir. 'source' is a URL or file:// path;
+          'md5' (optional) is checked after retrieval. Analysis rules only read the cache.
+        type: object
+        additionalProperties:
+          type: object
+          required: [source]
+          properties:
+            source: {type: string}
+            md5: {type: string, pattern: "^[0-9a-f]{32}$"}
+            version: {type: string}
+            kind:
+              type: string
+              enum: [gtf, msigdb_export, hpa_immune_cell, hpa_single_cell, fasta, kegg_pathways, tsv]
+      gene_lists:
+        description: Named gene lists (TSV with columns list, gene_symbol, source). Package defaults are in inst/extdata/gene_lists/.
+        type: array
+        items: {type: string}
+        default: []
+
+  annotation:
+    type: object
+    default: {}
+    additionalProperties: false
+    properties:
+      gtf: {type: string, default: gtf, description: Key of the GTF in resources.items.}
+      id_type: {type: string, enum: [ensembl_gene_id, gene_symbol, entrez_id], default: ensembl_gene_id}
+      symbol_source:
+        type: string
+        enum: [annotation, abundance]
+        default: annotation
+        description: Where gene_symbol comes from when both are present.
+
+  gene_filter:
+    description: Default gene filter for count-based modules (modules may override).
+    type: object
+    default: {}
+    additionalProperties: false
+    properties:
+      biotypes: {type: array, items: {type: string}, default: [protein_coding, lncRNA]}
+      exclude_mitochondrial: {type: boolean, default: true}
+      min_cpm: {type: number, default: 2}
+      min_samples: {type: integer, default: 2}
+      sex_genes: {type: string, enum: [keep, drop_xist_y, drop_xy], default: drop_xist_y}
+
+  contrasts:
+    description: Contrasts computed from counts.
+    type: array
+    default: []
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, numerator, denominator]
+      properties:
+        id: {type: string, pattern: "^[A-Za-z0-9_]+$"}
+        numerator: {type: array, items: {type: string}, description: sample_ids, or "factor=level".}
+        denominator: {type: array, items: {type: string}}
+        label: {type: string}
+
+  contrast_pairs:
+    description: Pairs of contrasts expected to share an effect (used by concordance and gene-set concordance).
+    type: array
+    default: []
+    items:
+      type: object
+      required: [id, first, second]
+      properties:
+        id: {type: string}
+        first: {type: string, description: Contrast id (keys x/y are avoided because YAML 1.1 reads 'y' as a boolean).}
+        second: {type: string}
+        label: {type: string}
+
+  designs:
+    description: Model designs for inferential DE (module de_test) and dispersion estimates.
+    type: array
+    default: []
+    items:
+      type: object
+      required: [id, formula]
+      properties:
+        id: {type: string}
+        formula: {type: string, description: e.g. "~ patient + condition"}
+        contrast: {type: array, items: {type: string}, minItems: 3, maxItems: 3}
+        engine: {type: string, enum: [deseq2, edger], default: deseq2}
+
+  thresholds:
+    type: object
+    default: {}
+    additionalProperties: false
+    properties:
+      padj: {type: number, default: 0.05}
+      abs_fold_change: {type: number, default: 1.5, description: Linear |fold change|; log2 threshold is derived.}
+      posterior_prob: {type: number, default: 0.8}
+
+  modules:
+    type: object
+    additionalProperties: false
+    default: {}
+    properties:
+      qc:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          top_n_share: {type: integer, default: 50}
+          top_n_list: {type: integer, default: 15}
+          ribosomal_protein_regex: {type: string, default: "^RP[SL][0-9]+[A-Z]?[0-9]*$"}
+          hemoglobin_genes: {$ref: "#/$defs/gene_list_ref", default: hemoglobin}
+          rrna_biotypes: {type: array, items: {type: string}, default: [rRNA, Mt_rRNA, rRNA_pseudogene]}
+      pca:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          transforms: {type: array, items: {type: string, enum: [vst, logcpm_tmm]}, default: [vst, logcpm_tmm]}
+          ntop: {type: array, items: {type: [integer, string]}, default: [500, 1000, 2000, all]}
+          sex_gene_variants: {type: array, items: {type: string}, default: [keep, drop_xist_y, drop_xy]}
+          gene_subsets: {type: array, items: {type: string}, default: [all]}
+          exclude_symbol_regex: {type: [string, "null"], default: null}
+          thinning: {type: boolean, default: false}
+          separation_factors: {type: array, items: {type: string}, default: []}
+          scores_ntop: {type: [integer, string], default: 1000}
+          pc_drivers: {type: boolean, default: true}
+          qc_metrics_for_drivers: {type: array, items: {type: string}, default: []}
+          top_loadings: {type: integer, default: 40}
+      markers:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          panels: {type: string, default: marker_panels}
+          pseudocount: {type: number, default: 1}
+          ratios:
+            type: array
+            default: []
+            items:
+              type: object
+              properties:
+                id: {type: string}
+                numerator_gene: {type: string}
+                denominator_gene: {type: string}
+                numerator_sample: {type: string}
+                denominator_sample: {type: string}
+      contamination:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          profiles: {type: string, default: contaminant_profiles}
+          reference_profile: {type: [string, "null"], default: null}
+          ratio_checks: {type: array, default: []}
+          excess_checks: {type: array, default: []}
+          mask:
+            type: object
+            default: {}
+            properties:
+              include_sets: {type: array, items: {type: string}, default: []}
+              exclude_sets: {type: array, items: {type: string}, default: []}
+              add_profiles: {type: array, items: {type: string}, default: []}
+      contamination_sets:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          method: {type: string, enum: [camera_pr], default: camera_pr}
+          inter_gene_cor: {type: number, default: 0.01}
+      reference:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          target_cell: {type: [string, "null"], default: null}
+          contaminant_cells: {type: array, items: {type: string}, default: []}
+          min_target_expr: {type: number, default: 1}
+          contam_min: {type: number, default: 20}
+          contam_fold: {type: number, default: 5}
+          axes: {type: array, default: []}
+          universe_grid: {type: boolean, default: false}
+      deconvolution:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          components: {type: object, default: {}}
+          marker_min_expr: {type: number, default: 50}
+          marker_specificity: {type: number, default: 10}
+          solver: {type: string, enum: [optim_lbfgsb, lawson_hanson], default: optim_lbfgsb}
+          variants: {type: array, default: []}
+      contrasts:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          estimators: {type: array, items: {type: string, enum: [logcpm_difference, deseq2_apeglm]}, default: [logcpm_difference]}
+          prior_count: {type: number, default: 2}
+          norm_method: {type: string, enum: [TMM, RLE, upperquartile, none, reference], default: TMM}
+          reference_genes: {oneOf: [{type: "null"}, {$ref: "#/$defs/gene_list_ref"}], default: null}
+          norm_variants: {type: array, items: {type: string}, default: []}
+          prior_variants: {type: array, items: {type: number}, default: []}
+          dispersion_design: {type: [string, "null"], default: null}
+          thinning: {type: object, default: {}, properties: {replicates: {type: integer, default: 0}, seed: {$ref: "#/$defs/seed"}}}
+          key_genes: {$ref: "#/$defs/gene_list_ref", default: []}
+          spread_threshold: {type: number, default: 1}
+      de_test:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          prefilter: {type: object, default: {min_count: 10, min_samples: 3}}
+          compare_with: {type: array, items: {type: string}, default: []}
+      concordance:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          thresholds: {$ref: "#/$defs/threshold_list", default: [0.58, 1]}
+          subsets: {type: array, items: {type: string}, default: [all]}
+          strata: {type: array, items: {type: string}, default: [all, ge_median]}
+          deciles: {type: boolean, default: false}
+          concordant_gene_lists: {type: object, default: {}}
+          power_simulation:
+            type: object
+            default: {enabled: false}
+            properties:
+              enabled: {type: boolean, default: false}
+              deltas: {type: array, items: {type: number}, default: [0.5, 1, 2]}
+              fractions: {type: array, items: {type: number}, default: [0.05, 0.1, 0.2]}
+              shared_fractions: {type: array, items: {type: number}, default: [1]}
+              replicates: {type: integer, default: 20}
+              seed: {$ref: "#/$defs/seed"}
+      geneset_test:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          methods: {type: array, items: {type: string, enum: [camera_pr, fgsea]}, default: [camera_pr]}
+          collections: {type: array, items: {type: string}, default: [H]}
+          min_size: {type: integer, default: 15}
+          max_size: {type: integer, default: 500}
+          inter_gene_cor: {type: array, items: {type: number}, default: [0.01]}
+          use_ranks: {type: array, items: {type: boolean}, default: [false]}
+          fgsea_tie_jitter_sd: {type: number, default: 1.0e-6}
+          universes: {type: array, items: {type: string}, default: [all]}
+          alpha: {type: number, default: 0.05}
+      ora:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          databases: {type: array, items: {type: string, enum: [GO_BP, GO_CC, GO_MF, KEGG, Reactome]}, default: [GO_BP, GO_CC, GO_MF, KEGG, Reactome]}
+          p_adjust_method: {type: string, default: BH}
+          pvalue_cutoff: {type: number, default: 0.05}
+          show_category: {type: integer, default: 15}
+      volcano:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          label_top: {type: integer, default: 15}
+      signatures:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          methods: {type: array, items: {type: string, enum: [zscore, ssgsea, singscore]}, default: [zscore, singscore]}
+          sets: {type: array, items: {type: string}, default: []}
+          composites: {type: array, default: []}
+          min_size: {type: integer, default: 10}
+          universes: {type: array, items: {type: string}, default: [all]}
+      pairing:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          fingerprint_variants: {type: array, default: []}
+          male_reference_samples: {type: array, items: {type: string}, default: []}
+          sex_denominators: {type: array, default: []}
+      power:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          design: {type: [string, "null"], default: null}
+          bootstrap_replicates: {type: integer, default: 200}
+          grid:
+            type: object
+            default: {cv: [0.2, 0.3, 0.4, 0.6], mu: [20, 100], fold_change: [1.5, 2], alpha: [0.01, 0.001], power: 0.8}
+      coverage:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          target_genes: {$ref: "#/$defs/gene_list_ref", default: []}
+          normalizer_genes: {$ref: "#/$defs/gene_list_ref", default: []}
+          flank_bp: {type: integer, default: 10000}
+          window_bp: {type: integer, default: 500}
+      covariates:
+        type: object
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          spline_df: {type: integer, default: 4}
+          strata: {type: array, items: {type: string}, default: [ge_median, ge_q75, all]}
+
+  export:
+    type: object
+    additionalProperties: false
+    default: {}
+    properties:
+      xlsx: {type: boolean, default: false}

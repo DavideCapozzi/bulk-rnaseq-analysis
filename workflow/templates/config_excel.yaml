@@ -1,0 +1,29 @@
+# Project config created by `bulkrnaseq init` (scenario: excel). Paths resolve against this folder.
+# Provider files go in <project>/input/ (read-only). Fill samples.tsv (input_column = matrix column name),
+# factors and designs, then:
+#   bulkrnaseq fetch config/config.yaml
+#   bulkrnaseq plan  config/config.yaml
+#   bulkrnaseq run   config/config.yaml
+project:
+  name: {{name}}
+  organism: human
+  output_dir: ../results
+  seed: 1
+toolkit:
+  version: "{{toolkit_version}}"
+samples:
+  sheet: samples.tsv
+  factors:
+    condition: [control, treated]
+inputs:
+  base_dir: ../../../input
+  counts: {adapter: matrix, file: Raw_Count.xlsx, sheet: Sheet1, id_column: Geneid}
+  normalized: {adapter: matrix, file: NormalizedCount.xlsx, sheet: NormalizedCount, id_column: Gene_ID}
+resources:
+  cache_dir: ../resources
+  items:
+    gtf: {source: "https://ftp.ensembl.org/pub/release-115/gtf/homo_sapiens/Homo_sapiens.GRCh38.115.gtf.gz", md5: 9b6e2a4cda2a01f6054a974428a7673c, version: Ensembl 115, kind: gtf}
+annotation:
+  gtf: gtf
+  id_type: gene_symbol
+designs: []
