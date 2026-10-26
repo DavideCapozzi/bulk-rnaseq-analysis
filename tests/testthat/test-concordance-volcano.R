@@ -33,8 +33,14 @@ test_that("concordance module reports per method, subset, threshold and pair; mi
   cfg$contrast_pairs[[1]]$second <- "zz"
   expect_error(
     run_concordance(list(contrast_stats = ct), list(thresholds = 1), list(cfg = cfg, organism = "human")),
-    "without estimates"
+    "without estimates from a common method"
   )
+  cfg$contrast_pairs[[1]]$second <- "b"
+  extra <- new_contrast_table("de", ids, rnorm(30), method = "deseq2_wald", source = "computed")
+  res <- run_concordance(
+    list(contrast_stats = rbind(ct, extra)), list(thresholds = 1), list(cfg = cfg, organism = "human")
+  )
+  expect_equal(unique(res$tables$concordance_summary$method), "m")
 })
 
 test_that("volcano classes use the contrast's own significance metric and linear fold-change threshold", {

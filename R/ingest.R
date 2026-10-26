@@ -5,8 +5,9 @@
 #' provider fold-change conventions). No file is written here; see [write_ingest_outputs()].
 #'
 #' @param cfg Config from [read_config()].
-#' @return `list(se, contrast_stats, qc, samples, report, provenance, resources, annotation)`; absent levels
-#'   are `NULL`.
+#' @return `list(se, contrast_stats, qc, samples, report, provenance, resources, annotation,
+#'   normalization_check)`; absent levels are `NULL`. `normalization_check` (see [check_normalization()]) is
+#'   filled when both counts and provider-normalised values are configured.
 #' @examples
 #' \donttest{
 #' # see the quickstart in README.md for a complete example on the shipped fixtures
@@ -80,6 +81,14 @@ run_ingest <- function(cfg) {
     se <- b$se
     report <- c(report, b$report)
   }
+  norm_check <- NULL
+  if (!is.null(counts) && !is.null(normalized)) {
+    nc <- check_normalization(
+      SummarizedExperiment::assay(se, "counts"), SummarizedExperiment::assay(se, "normalized")
+    )
+    norm_check <- nc$table
+    report <- c(report, nc$facts)
+  }
   ct <- NULL
   for (t in inp$contrast_tables %||% list()) {
     x <- read_de_table(input_path(cfg, t$file), t$id, t$adapter, t$sheet, t$columns, t$df_residual)
@@ -99,7 +108,7 @@ run_ingest <- function(cfg) {
   }
   list(
     se = se, contrast_stats = ct, qc = qc, samples = samples, report = report, provenance = provenance,
-    resources = res_paths, annotation = annotation
+    resources = res_paths, annotation = annotation, normalization_check = norm_check
   )
 }
 
@@ -160,6 +169,13 @@ write_ingest_outputs <- function(ing, out) {
   }
   if (!is.null(ing$qc) && nrow(ing$qc) > 0) {
     written <- c(written, write_table(ing$qc, dir, "qc_metrics", list(description = "QC metrics (long).")))
+    saveRDS(ing$qc, file.path(obj, "qc.rds"), version = 3)
+  }
+  if (!is.null(ing$normalization_check)) {
+    written <- c(written, write_table(ing$normalization_check, dir, "normalization_check", list(
+      description = "Provider normalisation vs raw counts: implied and recomputed size factors per sample.",
+      units = list(implied_size_factor = "raw / normalised (median over genes)")
+    )))
   }
   if (!is.null(ing$provenance)) {
     prov <- ing$provenance

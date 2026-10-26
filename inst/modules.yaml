@@ -1,4 +1,4 @@
-# Module registry (draft, phase 2).
+# Module registry.
 # Each entry declares what a module needs and produces. The Snakefile reads this file to decide which modules
 # run; skipped modules are listed in 00_provenance/run_manifest.json with the reason built from these fields.
 #
@@ -140,10 +140,11 @@ modules:
     conditions: [{design_df_min: 1}]
     provides: [contrast_stats, ranked]
     params: modules.de_test
-    outputs: [de_results, design_summary, provider_comparison]
+    outputs: [contrast_stats, design_summary, provider_comparison]
     figures: []
     caveats:
       - "assert_df(): error at 0 residual df, warning and exploratory flag at 1."
+      - "Fold changes are maximum-likelihood estimates (not shrunken); p-values have inference_scope sample."
 
   concordance:
     number: 11

@@ -87,7 +87,10 @@ run_module_step <- function(cfg, out, module) {
   params <- module_params(cfg, module)
   result <- fn(inputs, params, context)
   xlsx <- if (isTRUE(cfg$export$xlsx)) file.path(out, "report", paste0(row$dir, ".xlsx"))
-  written <- write_module_outputs(result, dir, params, xlsx_path = xlsx, gzip_tables = "contrast_stats")
+  written <- write_module_outputs(result, dir, params,
+    xlsx_path = xlsx, gzip_tables = "contrast_stats",
+    figure_sizes = result$figure_sizes %||% list()
+  )
   if ("contrast_stats" %in% unlist(m[["provides"]])) {
     dir.create(file.path(dir, "objects"), showWarnings = FALSE)
     saveRDS(result$tables$contrast_stats, file.path(dir, "objects", "contrast_stats.rds"), version = 3)
@@ -103,6 +106,7 @@ module_inputs <- function(cfg, out, caps, depends_on) {
     inputs$se <- readRDS(file.path(ing, "se.rds"))
     inputs$features <- as.data.frame(SummarizedExperiment::rowData(inputs$se))
   }
+  if (file.exists(file.path(ing, "qc.rds"))) inputs$qc <- readRDS(file.path(ing, "qc.rds"))
   pieces <- list()
   if (file.exists(file.path(ing, "contrast_stats.rds"))) pieces$ingest <- readRDS(file.path(ing, "contrast_stats.rds"))
   for (dep in setdiff(depends_on, "ingest")) {

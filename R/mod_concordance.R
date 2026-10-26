@@ -88,20 +88,30 @@ run_concordance <- function(inputs, params, context) {
   genes <- contrast_gene_table(ct, inputs$features, inputs$gene_flags)
   thresholds <- unlist(params$thresholds %||% c(0.58, 1))
   subsets <- unlist(params$subsets %||% "all")
+  # Contrast tables from several producers (contrasts, de_test, imports) carry different methods: a pair is
+  # evaluated for every method that estimates both of its contrasts, and must have at least one.
+  has_pair <- function(m, p) {
+    all(c(p$first, p$second) %in% ct$contrast_id[ct$method == m])
+  }
+  methods <- unique(ct$method)
+  for (p in pairs) {
+    if (!any(vapply(methods, has_pair, logical(1), p = p))) {
+      abort(
+        "concordance module: pair '", p$id, "' refers to contrast(s) without estimates from a common method: ",
+        p$first, ", ", p$second
+      )
+    }
+  }
+  methods <- methods[vapply(methods, function(m) any(vapply(pairs, has_pair, logical(1), m = m)), logical(1))]
   rows <- list()
-  for (m in unique(ct$method)) {
+  for (m in methods) {
     for (sub in subsets) {
       keep_ids <- genes$feature_id[gene_subset(genes, sub, context$organism)]
       for (thr in thresholds) {
         for (p in pairs) {
+          if (!has_pair(m, p)) next
           x <- ct[ct$method == m & ct$contrast_id == p$first, c("feature_id", "lfc")]
           y <- ct[ct$method == m & ct$contrast_id == p$second, c("feature_id", "lfc")]
-          if (nrow(x) == 0 || nrow(y) == 0) {
-            abort(
-              "concordance module: pair '", p$id, "' refers to contrast(s) without estimates for method '", m,
-              "': ", p$first, ", ", p$second
-            )
-          }
           ids <- intersect(intersect(x$feature_id, y$feature_id), keep_ids)
           ids <- x$feature_id[x$feature_id %in% ids]
           met <- concordance_metrics(x$lfc[match(ids, x$feature_id)], y$lfc[match(ids, y$feature_id)], thr)
@@ -115,9 +125,10 @@ run_concordance <- function(inputs, params, context) {
   }
   summary <- do.call(rbind, rows)
   figs <- list()
-  first_method <- unique(ct$method)[[1]]
+  first_method <- methods[[1]]
   figs$concordance_scatter <- plot_concordance_scatter(
-    ct[ct$method == first_method, ], pairs, thresholds[[length(thresholds)]]
+    ct[ct$method == first_method, ], Filter(function(p) has_pair(first_method, p), pairs),
+    thresholds[[length(thresholds)]]
   )
   list(
     tables = list(concordance_summary = summary),

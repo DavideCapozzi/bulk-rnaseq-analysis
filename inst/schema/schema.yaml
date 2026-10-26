@@ -304,6 +304,12 @@ properties:
           ribosomal_protein_regex: {type: string, default: "^RP[SL][0-9]+[A-Z]?[0-9]*$"}
           hemoglobin_genes: {$ref: "#/$defs/gene_list_ref", default: hemoglobin}
           rrna_biotypes: {type: array, items: {type: string}, default: [rRNA, Mt_rRNA, rRNA_pseudogene]}
+          figure_metrics:
+            type: array
+            items: {type: string}
+            description: Metrics shown in the qc_metrics figure (absent ones are skipped).
+            default: [library_size, genes_count_ge10, pct_counts_mito, pct_counts_rrna, pct_counts_protein_coding,
+                      pct_counts_top50_genes]
       pca:
         type: object
         default: {}
@@ -313,9 +319,31 @@ properties:
           ntop: {type: array, items: {type: [integer, string]}, default: [500, 1000, 2000, all]}
           sex_gene_variants: {type: array, items: {type: string}, default: [keep, drop_xist_y, drop_xy]}
           gene_subsets: {type: array, items: {type: string}, default: [all]}
-          exclude_symbol_regex: {type: [string, "null"], default: null}
-          thinning: {type: boolean, default: false}
-          separation_factors: {type: array, items: {type: string}, default: []}
+          symbol_exclusion_variants:
+            type: array
+            items: {type: string}
+            default: []
+            description: >
+              Regexes on gene symbols (e.g. "^HLA-"); each adds a variant of the grid without the matching genes,
+              besides the variant without exclusion.
+          thinning:
+            type: boolean
+            default: false
+            description: Adds a variant on counts thinned to the smallest library (edgeR::thinCounts, project.seed).
+          separation_factors:
+            type: array
+            items: {type: string}
+            default: []
+            description: "Factors labelled in pca_summary (default: all samples.factors, in order)."
+          orient_pc1:
+            type: [object, "null"]
+            default: null
+            description: Orients PC1 so that samples at this level have positive mean score (drivers, pc1_order).
+            required: [factor, level]
+            properties:
+              factor: {type: string}
+              level: {type: string}
+          abundance_sex_genes: {type: string, enum: [keep, drop_xist_y, drop_xy], default: keep}
           scores_ntop: {type: [integer, string], default: 1000}
           pc_drivers: {type: boolean, default: true}
           qc_metrics_for_drivers: {type: array, items: {type: string}, default: []}
@@ -403,8 +431,28 @@ properties:
         default: {}
         properties:
           enabled: {type: boolean, default: true}
-          prefilter: {type: object, default: {min_count: 10, min_samples: 3}}
-          compare_with: {type: array, items: {type: string}, default: []}
+          prefilter:
+            type: object
+            default: {min_count: 10, min_samples: 3}
+            description: Genes with at least min_count reads in at least min_samples samples are tested.
+            properties:
+              min_count: {type: integer, minimum: 0}
+              min_samples: {type: integer, minimum: 1}
+          results_alpha:
+            type: number
+            default: 0.1
+            description: alpha of DESeq2::results(), the FDR target of independent filtering (DESeq2 default 0.1).
+          compare_with:
+            type: array
+            default: []
+            description: Computed design vs imported contrast table, reported in provider_comparison.
+            items:
+              type: object
+              required: [design, contrast_table]
+              additionalProperties: false
+              properties:
+                design: {type: string}
+                contrast_table: {type: string}
       concordance:
         type: object
         default: {}

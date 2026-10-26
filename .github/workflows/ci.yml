@@ -1,0 +1,74 @@
+# Checks every push and pull request in the pinned toolkit environment (envs/*.explicit.txt, linux-64):
+# data guard, ruff, pytest, styler, lintr, testthat, R CMD check, and one synthetic workflow run per scenario,
+# repeated once to confirm that a second run reproduces every output byte for byte.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          init-shell: bash
+
+      - name: Create the toolkit environment from the explicit spec
+        run: |
+          micromamba create -y -n bulkrnaseq -f envs/bulk-rnaseq-analysis-dev.explicit.txt
+          echo "BULKRNASEQ_ENV=$(micromamba env list --json | python3 -c 'import json,sys; print([p for p in json.load(sys.stdin)["envs"] if p.endswith("/bulkrnaseq")][0])')" >> "$GITHUB_ENV"
+
+      - name: Data guard, ruff, pytest
+        run: |
+          micromamba activate bulkrnaseq
+          python tools/check_no_data.py --all
+          ruff check .
+          ruff format --check .
+          pytest -q
+
+      - name: styler and lintr
+        run: |
+          micromamba activate bulkrnaseq
+          Rscript tools/check_r.R style $(git ls-files 'R/*.R' 'tests/*.R')
+          Rscript tools/check_r.R lint $(git ls-files 'R/*.R' 'tests/*.R')
+
+      - name: testthat
+        run: |
+          micromamba activate bulkrnaseq
+          R CMD INSTALL --no-docs .
+          Rscript -e 'testthat::test_local(stop_on_failure = TRUE)'
+
+      - name: R CMD check
+        run: |
+          micromamba activate bulkrnaseq
+          R CMD build --no-build-vignettes .
+          _R_CHECK_FORCE_SUGGESTS_=false R CMD check --no-manual bulkrnaseq_*.tar.gz
+          if grep -qE "^Status: .*(ERROR|WARNING)" bulkrnaseq.Rcheck/00check.log; then exit 1; fi
+
+      - name: Synthetic scenarios, run twice
+        run: |
+          micromamba activate bulkrnaseq
+          for cfg in config/examples/scenario_*.yaml; do
+            bin/bulkrnaseq fetch "$cfg"
+            bin/bulkrnaseq run "$cfg"
+          done
+          # Outside the checkout: an untracked folder would make the second run stop on a dirty checkout.
+          mv results "$RUNNER_TEMP/results_first"
+          for cfg in config/examples/scenario_*.yaml; do
+            bin/bulkrnaseq fetch "$cfg"
+            bin/bulkrnaseq run "$cfg"
+          done
+          diff <(cd "$RUNNER_TEMP/results_first" && find . -type f ! -name run_timestamps.json ! -path '*/.snakemake/*' -print0 | sort -z | xargs -0 md5sum) \
+               <(cd results && find . -type f ! -name run_timestamps.json ! -path '*/.snakemake/*' -print0 | sort -z | xargs -0 md5sum)

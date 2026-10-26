@@ -10,8 +10,8 @@ run_ingest(cfg)
 \item{cfg}{Config from \code{\link[=read_config]{read_config()}}.}
 }
 \value{
-\code{list(se, contrast_stats, qc, samples, report, provenance, resources, annotation)}; absent levels
-are \code{NULL}.
+\code{list(se, contrast_stats, qc, samples, report, provenance, resources, annotation, normalization_check)}; absent levels are \code{NULL}. \code{normalization_check} (see \code{\link[=check_normalization]{check_normalization()}}) is
+filled when both counts and provider-normalised values are configured.
 }
 \description{
 Runs the adapters for every configured input, assembles the SummarizedExperiment and the imported contrast

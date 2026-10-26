@@ -1,7 +1,8 @@
 # Architecture
 
-Status: design draft (phase 2). Sections marked **[I]** are design intentions not yet implemented or verified;
-**[V]** statements cite a file in this repository.
+Status: 0.x, partly implemented. Modules implemented: `qc`, `pca`, `contrasts`, `de_test`, `concordance`, `ora`,
+`volcano`; the others are registered and skipped as "not implemented". Sections marked **[I]** are design intentions
+not yet implemented or verified; **[V]** statements cite a file in this repository.
 
 `bulkrnaseq` is an R package plus a Snakemake workflow that turns the outputs of an RNA-seq provider
 (gene counts, abundances, normalised counts, differential-expression tables, coverage tracks, QC reports)

@@ -15,3 +15,7 @@ Rplots.pdf
 .DS_Store
 # Windows "downloaded from the internet" marks that WSL shows as files
 *:Zone.Identifier
+
+# Local Claude Code files (personal workflow notes and settings, never published)
+CLAUDE.md
+.claude/
