@@ -15,14 +15,15 @@
 #' classify_de(ct, list(padj = 0.05, abs_fold_change = 1.5))
 #' @export
 classify_de <- function(ct, thresholds) {
+  thresholds <- with_defaults(thresholds, "thresholds")
   sig <- significance_values(ct)
   if (sig$metric == "none") abort("classify_de(): contrast '", ct$contrast_id[[1]], "' has no significance metric")
   passes <- if (sig$metric == "padj") {
-    sig$values <= (thresholds$padj %||% 0.05)
+    sig$values <= thresholds$padj
   } else {
-    sig$values >= (thresholds$posterior_prob %||% 0.8)
+    sig$values >= thresholds$posterior_prob
   }
-  lfc_thr <- log2(thresholds$abs_fold_change %||% 1.5)
+  lfc_thr <- log2(thresholds$abs_fold_change)
   out <- ifelse(passes & ct$lfc >= lfc_thr, "UP", ifelse(passes & ct$lfc <= -lfc_thr, "DOWN", "NS"))
   out[is.na(out)] <- "NS"
   out
@@ -50,7 +51,8 @@ run_volcano <- function(inputs, params, context) {
   ct <- inputs$contrast_stats
   ct <- ct[ct$significance_metric != "none", , drop = FALSE]
   if (nrow(ct) == 0) abort("volcano module: no contrast with a significance metric")
-  thresholds <- context$cfg$thresholds %||% list(padj = 0.05, abs_fold_change = 1.5, posterior_prob = 0.8)
+  params <- with_defaults(params, c("modules", "volcano"))
+  thresholds <- with_defaults(context$cfg$thresholds, "thresholds")
   pts <- list()
   figs <- list()
   for (key in unique(paste(ct$contrast_id, ct$method, sep = "\r"))) {
@@ -60,10 +62,10 @@ run_volcano <- function(inputs, params, context) {
       contrast_id = x$contrast_id, method = x$method, feature_id = x$feature_id,
       gene_symbol = x$gene_symbol, lfc = x$lfc, significance_metric = sig$metric,
       significance = sig$values, class = classify_de(x, thresholds),
-      inference_scope = x$inference_scope, stringsAsFactors = FALSE
+      inference_scope = x$inference_scope, exploratory = contrast_exploratory(x), stringsAsFactors = FALSE
     )
     pts[[key]] <- d
-    figs[[paste0("volcano_", x$contrast_id[[1]])]] <- plot_volcano(d, thresholds, params$label_top %||% 15)
+    figs[[paste0("volcano_", x$contrast_id[[1]])]] <- plot_volcano(d, thresholds, params$label_top)
   }
   tab <- do.call(rbind, unname(pts))
   rownames(tab) <- NULL
@@ -91,21 +93,22 @@ run_volcano <- function(inputs, params, context) {
 #' plot_volcano(d, list(padj = 0.05, abs_fold_change = 1.5), 2)
 #' @export
 plot_volcano <- function(d, thresholds, label_top = 15) {
+  thresholds <- with_defaults(thresholds, "thresholds")
   metric <- d$significance_metric[[1]]
   if (metric == "padj") {
     d$y <- -log10(d$significance)
     ylab <- "-log10(adjusted p-value)"
-    yline <- -log10(thresholds$padj %||% 0.05)
+    yline <- -log10(thresholds$padj)
   } else {
     d$y <- d$significance
     ylab <- "posterior probability"
-    yline <- thresholds$posterior_prob %||% 0.8
+    yline <- thresholds$posterior_prob
   }
   d$class <- factor(d$class, levels = c("NS", "DOWN", "UP"))
   d <- d[order(d$class), ]
   sig <- d[d$class != "NS", , drop = FALSE]
   lab <- utils::head(sig[order(-sig$y, -abs(sig$lfc)), , drop = FALSE], label_top)
-  lfc_thr <- log2(thresholds$abs_fold_change %||% 1.5)
+  lfc_thr <- log2(thresholds$abs_fold_change)
   ggplot2::ggplot(d, ggplot2::aes(x = .data$lfc, y = .data$y, colour = .data$class)) +
     ggplot2::geom_point(size = 1.1, alpha = 0.7) +
     ggplot2::geom_vline(xintercept = c(-lfc_thr, lfc_thr), linetype = "dashed", linewidth = 0.3) +

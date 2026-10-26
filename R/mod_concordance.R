@@ -57,11 +57,27 @@ contrast_gene_table <- function(ct, features = NULL, flags = NULL) {
   merge_gene_flags(genes, flags)
 }
 
+# Samples behind each contrast the toolkit computed: both sides of a configured contrast, and every sample of the
+# fit for a de_test design. Imported contrasts are absent (unknown).
+contrast_sample_sets <- function(cfg, se) {
+  if (is.null(se)) {
+    return(list())
+  }
+  samples <- as.data.frame(SummarizedExperiment::colData(se))
+  out <- list()
+  for (cn in cfg$contrasts %||% list()) {
+    out[[cn$id]] <- c(contrast_samples(cn$numerator, samples), contrast_samples(cn$denominator, samples))
+  }
+  for (d in cfg$designs %||% list()) if (!is.null(d$contrast)) out[[d$id]] <- colnames(se)
+  out
+}
+
 #' Concordance module
 #'
 #' For each pair of contrasts expected to share an effect, each estimator, gene subset and threshold, reports
 #' correlation and sign concordance of the fold changes. This is a descriptive comparison: genes are not
-#' independent and no p-value is attached.
+#' independent and no p-value is attached. `shared_samples` counts the samples behind both contrasts of a pair
+#' (`NA` when one is imported): their noise is shared, which inflates concordance.
 #'
 #' @param inputs `list` with `contrast_stats` (canonical table, all available contrasts), optional `features`
 #'   and `gene_flags`.
@@ -82,12 +98,19 @@ contrast_gene_table <- function(ct, features = NULL, flags = NULL) {
 #' )$tables$concordance_summary
 #' @export
 run_concordance <- function(inputs, params, context) {
+  params <- with_defaults(params, c("modules", "concordance"))
   ct <- inputs$contrast_stats
   pairs <- context$cfg$contrast_pairs %||% list()
   if (length(pairs) == 0) abort("concordance module: no contrast_pairs in the config")
   genes <- contrast_gene_table(ct, inputs$features, inputs$gene_flags)
-  thresholds <- unlist(params$thresholds %||% c(0.58, 1))
-  subsets <- unlist(params$subsets %||% "all")
+  sets <- contrast_sample_sets(context$cfg, inputs$se)
+  shared <- function(p) {
+    a <- sets[[p$first]]
+    b <- sets[[p$second]]
+    if (is.null(a) || is.null(b)) NA_integer_ else length(intersect(a, b))
+  }
+  thresholds <- unlist(params$thresholds)
+  subsets <- unlist(params$subsets)
   # Contrast tables from several producers (contrasts, de_test, imports) carry different methods: a pair is
   # evaluated for every method that estimates both of its contrasts, and must have at least one.
   has_pair <- function(m, p) {
@@ -117,7 +140,7 @@ run_concordance <- function(inputs, params, context) {
           met <- concordance_metrics(x$lfc[match(ids, x$feature_id)], y$lfc[match(ids, y$feature_id)], thr)
           rows[[length(rows) + 1]] <- data.frame(
             method = m, subset = sub, n_genes = length(ids), threshold = thr,
-            pair_id = p$id, first = p$first, second = p$second, as.list(met)
+            pair_id = p$id, first = p$first, second = p$second, shared_samples = shared(p), as.list(met)
           )
         }
       }
@@ -134,7 +157,10 @@ run_concordance <- function(inputs, params, context) {
     tables = list(concordance_summary = summary),
     figures = figs,
     meta = list(concordance_summary = list(
-      description = "Correlation and sign concordance of fold changes between contrast pairs (descriptive).",
+      description = paste(
+        "Correlation and sign concordance of fold changes between contrast pairs (descriptive);",
+        "shared_samples > 0 means correlated noise that inflates concordance (NA: an imported contrast)."
+      ),
       units = list(
         pearson = "correlation", spearman = "correlation", pct_concordant = "percent", threshold = "log2_ratio"
       )

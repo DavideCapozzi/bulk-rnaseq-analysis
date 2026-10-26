@@ -38,13 +38,6 @@ resolve_path <- function(path, base) {
 
 md5_file <- function(path) unname(tools::md5sum(path))
 
-# Rounds like formatC("%.Ng") would, used when comparing with references written with a fixed number of
-# significant digits.
-signif_chr <- function(x, digits) {
-  out <- formatC(x, digits = digits, format = "g")
-  trimws(out)
-}
-
 is_whole_number <- function(x, tol = 0) {
   x <- x[!is.na(x)]
   all(abs(x - round(x)) <= tol)

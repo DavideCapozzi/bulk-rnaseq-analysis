@@ -66,6 +66,32 @@ def snakemake_command(
     return cmd + (["--dry-run"] if dry_run else []) + targets + extra
 
 
+def failed_step_logs(snakemake_log: str) -> list[Path]:
+    """Log files of the failed rules, in order: each "Error in rule" block of Snakemake's log names one."""
+    logs: list[Path] = []
+    in_error = False
+    for line in snakemake_log.splitlines():
+        if line.startswith("Error in rule"):
+            in_error = True
+        elif in_error and line.strip().startswith("log:"):
+            path = Path(line.split("log:", 1)[1].split(" (check log", 1)[0].strip())
+            if path not in logs:
+                logs.append(path)
+            in_error = False
+    return logs
+
+
+def report_failure(workdir: Path, n_lines: int = 15) -> None:
+    """Print the end of each failed step's log, so the R error is visible without opening files."""
+    runs = sorted((workdir / ".snakemake" / "log").glob("*.snakemake.log"))
+    if not runs:
+        return
+    for log in failed_step_logs(runs[-1].read_text(errors="replace")):
+        if log.is_file():
+            tail = log.read_text(errors="replace").splitlines()[-n_lines:]
+            print(f"\nbulkrnaseq: last lines of {log}:", *(f"  {t}" for t in tail), sep="\n", file=sys.stderr)
+
+
 def run_workflow(args: argparse.Namespace, targets: list[str]) -> int:
     config = Path(args.config).expanduser().resolve()
     if not config.is_file():
@@ -75,8 +101,12 @@ def run_workflow(args: argparse.Namespace, targets: list[str]) -> int:
     env["PATH"] = os.pathsep.join([str(snakemake.parent), env.get("PATH", "")])
     env[DEV_ENV] = "1" if args.dev else "0"
     extra = [a for a in getattr(args, "snakemake_args", []) if a != "--"]
-    cmd = snakemake_command(snakemake, config, targets, args.cores, getattr(args, "dry_run", False), extra)
-    return subprocess.run(cmd, env=env, check=False).returncode
+    dry_run = getattr(args, "dry_run", False)
+    cmd = snakemake_command(snakemake, config, targets, args.cores, dry_run, extra)
+    code = subprocess.run(cmd, env=env, check=False).returncode
+    if code != 0 and not dry_run:
+        report_failure(workdir_for(config))
+    return code
 
 
 def project_name(folder: Path) -> str:

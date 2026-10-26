@@ -18,8 +18,9 @@ samples are tested.}
 \item{alpha}{\code{numeric(1)}. \code{alpha} of \code{DESeq2::results()}, the FDR target of independent filtering.}
 }
 \value{
-Canonical contrast table (method \code{"deseq2_wald"}, \code{inference_scope = "sample"}) with attributes
-\code{df_residual}, \code{exploratory}, \code{design_rank}, \code{n_samples}.
+Canonical contrast table (method \code{"deseq2_wald"}, \code{inference_scope = "sample"}, extension column
+\code{exploratory}: \code{TRUE} with 1 residual degree of freedom) with attributes \code{exploratory}, \code{design_rank},
+\code{n_samples}.
 }
 \description{
 Keeps genes with at least \code{min_count} reads in at least \code{min_samples} samples, fits the design with

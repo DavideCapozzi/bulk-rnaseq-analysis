@@ -20,7 +20,8 @@ and \code{gene_flags}.}
 \description{
 For each pair of contrasts expected to share an effect, each estimator, gene subset and threshold, reports
 correlation and sign concordance of the fold changes. This is a descriptive comparison: genes are not
-independent and no p-value is attached.
+independent and no p-value is attached. \code{shared_samples} counts the samples behind both contrasts of a pair
+(\code{NA} when one is imported): their noise is shared, which inflates concordance.
 }
 \examples{
 set.seed(1)

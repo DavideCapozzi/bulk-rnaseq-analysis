@@ -26,18 +26,22 @@ read_de_table(
 required for \code{"generic"} (at least \code{feature_id} and \code{lfc}; optionally \code{lfc_se}, \code{stat}, \code{pvalue},
 \code{padj}, \code{base_mean}, \code{posterior_prob}).}
 
-\item{df_residual}{\code{integer(1)} or \code{NULL}. Residual degrees of freedom if known.}
+\item{df_residual}{\code{integer(1)} or \code{NULL}. Residual degrees of freedom of the provider's model (n samples -
+rank of the design); required when the table has a significance metric (\code{padj} or \code{posterior_prob}).}
 }
 \value{
 A canonical contrast table (see \code{\link[=new_contrast_table]{new_contrast_table()}}) with attribute \code{checks} (a list
-describing the fold-change sign convention and missing values).
+describing the fold-change sign convention and missing values); with a significance metric, extension
+column \code{exploratory} is \code{TRUE} when \code{df_residual} is 1.
 }
 \description{
 Imports a provider's DE results without recomputing them. DESeq2 and NOISeq column names are recognised;
 any other layout uses an explicit column mapping. A NOISeq posterior probability is kept as
 \code{posterior_prob} with \code{significance_metric = "posterior_prob"}: it is never relabelled as an adjusted
-p-value. A \code{FoldChange} column is checked against \code{log2FoldChange} and recorded as signed (\code{-1/FC} for
-negative log fold changes) or unsigned.
+p-value. The inference scope of an imported significance metric follows the residual degrees of freedom of
+the provider's model, which must be declared: \code{"sample"} with 1 or more, \code{"conditional_on_contrast"} with 0
+(no replicates, e.g. NOISeq-sim). A \code{FoldChange} column is checked against \code{log2FoldChange} and recorded as
+signed (\code{-1/FC} for negative log fold changes) or unsigned.
 }
 \examples{
 f <- tempfile(fileext = ".tsv")
@@ -45,5 +49,5 @@ writeLines(c(
   "Gene_ID\tbaseMean\tlog2FoldChange\tlfcSE\tstat\tpvalue\tpadj",
   "A\t10\t1\t0.5\t2\t0.04\t0.08"
 ), f)
-read_de_table(f, "a_vs_b", "deseq2")
+read_de_table(f, "a_vs_b", "deseq2", df_residual = 4)
 }

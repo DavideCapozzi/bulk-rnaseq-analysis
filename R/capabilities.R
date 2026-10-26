@@ -15,7 +15,7 @@ input_levels <- function(cfg) {
   }
   if (!is.null(inp$normalized)) lv$normalized <- paste0("matrix (", inp$normalized$file, ")")
   if (!is.null(inp$coverage)) lv$coverage <- paste0("bedgraph (", inp$coverage$files, ")")
-  if (!is.null(inp$qc) || identical(inp$counts$adapter, "star_reads_per_gene")) lv$qc <- "QC reports / STAR N_* rows"
+  if (identical(inp$counts$adapter, "star_reads_per_gene")) lv$qc <- "STAR N_* rows"
   tabs <- inp$contrast_tables %||% list()
   contrasts <- data.frame(contrast_id = character(), significance_metric = character(), source = character())
   for (t in tabs) {
@@ -120,6 +120,9 @@ available_contrasts <- function(cfg, imported, status, samples) {
 }
 
 module_unmet <- function(m, cfg, provided, contrasts, samples, lv, gene_lists) {
+  if (!exists(m[["function"]], envir = asNamespace("bulkrnaseq"), inherits = FALSE)) {
+    return(paste0("not implemented in bulkrnaseq ", utils::packageVersion("bulkrnaseq"), " (", m[["function"]], ")"))
+  }
   req <- unlist(m[["requires"]])
   missing <- setdiff(req, provided)
   if (length(missing) > 0) {
@@ -146,9 +149,6 @@ module_unmet <- function(m, cfg, provided, contrasts, samples, lv, gene_lists) {
     if (!key %in% names(cfg$resources$items %||% list()) && !r %in% names(gene_lists)) {
       return(paste0("needs resource '", key, "' (resources.items) or gene list '", r, "'"))
     }
-  }
-  if (!exists(m[["function"]], envir = asNamespace("bulkrnaseq"), inherits = FALSE)) {
-    return(paste0("not implemented in bulkrnaseq ", utils::packageVersion("bulkrnaseq"), " (", m[["function"]], ")"))
   }
   NULL
 }

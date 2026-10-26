@@ -179,6 +179,15 @@ validate_qc_table <- function(qc) {
   invisible(qc)
 }
 
+# Whether a contrast comes from a model with 1 residual degree of freedom (extension column `exploratory`, set by
+# de_test, the apeglm estimator and imported tables); NA when its producer does not say (descriptive estimators).
+contrast_exploratory <- function(ct) {
+  if (!"exploratory" %in% names(ct)) {
+    return(NA)
+  }
+  unique(ct$exploratory)[[1]]
+}
+
 #' Bind contrast tables with different extension columns
 #'
 #' @param tables `list` of canonical contrast tables (`NULL` entries are dropped).

@@ -4,6 +4,7 @@
 rule ingest:
     input:
         config=RESOLVED,
+        toolkit=TOOLKIT_JSON,
         capabilities=os.path.join(PROV, "capabilities.json"),
     output:
         os.path.join(OUT, "01_ingest", "step.done"),

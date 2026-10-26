@@ -189,6 +189,7 @@ palette_bulkrnaseq <- function(levels) {
 #' res$tables$qc_summary
 #' @export
 run_qc <- function(inputs, params, context) {
+  params <- with_defaults(params, c("modules", "qc"))
   cfg <- context$cfg
   se <- inputs$se
   has_counts <- !is.null(se) && "counts" %in% SummarizedExperiment::assayNames(se)
@@ -198,7 +199,7 @@ run_qc <- function(inputs, params, context) {
   if (has_counts) {
     eq <- expression_qc_from_params(se, params, context)
     tables$expression_qc <- eq
-    tables$top_genes <- top_genes(se, params$top_n_list %||% 15)
+    tables$top_genes <- top_genes(se, params$top_n_list)
     qc <- rbind(qc, eq)
     meta$expression_qc <- list(
       description = "Expression-level QC per sample, on all genes of the count matrix (no filter).",
@@ -224,26 +225,20 @@ run_qc <- function(inputs, params, context) {
     f <- sample_factors(se, cfg)
     fill <- if (length(f)) SummarizedExperiment::colData(se)[[f[[1]]]]
     w <- wide[match(colnames(se), wide$sample_id), , drop = FALSE]
-    figures$qc_metrics <- plot_qc_metrics(w, unlist(params$figure_metrics %||% default_qc_figure_metrics()),
+    figures$qc_metrics <- plot_qc_metrics(w, unlist(params$figure_metrics),
       labels = sample_labels(se, cfg), fill = fill
     )
   }
   list(tables = tables, figures = figures, meta = meta, figure_sizes = list(qc_metrics = c(10, 8)))
 }
 
-default_qc_figure_metrics <- function() {
-  c(
-    "library_size", "genes_count_ge10", "pct_counts_mito", "pct_counts_rrna", "pct_counts_protein_coding",
-    "pct_counts_top50_genes"
-  )
-}
-
 # Expression QC with the parameters of modules.qc (shared by the qc and pca modules).
 expression_qc_from_params <- function(se, params, context) {
+  params <- with_defaults(params, c("modules", "qc"))
   expression_qc(se,
-    ribosomal_protein_regex = params$ribosomal_protein_regex %||% "^RP[SL][0-9]+[A-Z]?[0-9]*$",
-    hemoglobin_genes = resolve_gene_list(params$hemoglobin_genes %||% "hemoglobin", context$gene_lists),
-    rrna_biotypes = unlist(params$rrna_biotypes %||% c("rRNA", "Mt_rRNA", "rRNA_pseudogene")),
-    top_n_share = params$top_n_share %||% 50, organism = context$organism %||% "human"
+    ribosomal_protein_regex = params$ribosomal_protein_regex,
+    hemoglobin_genes = resolve_gene_list(params$hemoglobin_genes, context$gene_lists),
+    rrna_biotypes = unlist(params$rrna_biotypes), top_n_share = params$top_n_share,
+    organism = context$organism %||% "human"
   )
 }

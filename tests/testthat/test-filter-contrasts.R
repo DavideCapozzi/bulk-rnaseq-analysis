@@ -74,3 +74,19 @@ test_that("contrast_samples resolves sample ids and factor terms", {
   expect_error(contrast_samples("zz", ss), "unknown sample_id")
   expect_error(contrast_samples("h=x", ss), "no sample sheet column 'h'")
 })
+
+test_that("contrasts module returns descriptive fold changes and the declared tables", {
+  set.seed(1)
+  m <- matrix(rpois(400, 50), 100, dimnames = list(sprintf("g%03d", 1:100), paste0("s", 1:4)))
+  cfg <- list(
+    contrasts = list(list(id = "s1_vs_s2", numerator = "s1", denominator = "s2")),
+    gene_filter = list(min_cpm = 1, min_samples = 1, sex_genes = "keep")
+  )
+  res <- run_contrasts(list(se = toy_se(m)), list(), list(cfg = cfg, gene_lists = list(), organism = "human"))
+  expect_registry_outputs(res, "contrasts")
+  ct <- res$tables$contrast_stats
+  expect_equal(unique(ct$method), "logcpm_difference")
+  expect_true(all(is.na(ct$pvalue)))
+  expect_equal(unique(ct$df_residual), 0L)
+  expect_equal(res$tables$contrast_spread$subset, "all")
+})

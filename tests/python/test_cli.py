@@ -3,7 +3,16 @@ from pathlib import Path
 
 import pytest
 import yaml
-from bulkrnaseq_cli import REPO, SCENARIOS, find_snakemake, init_project, project_name, workdir_for
+from bulkrnaseq_cli import (
+    REPO,
+    SCENARIOS,
+    failed_step_logs,
+    find_snakemake,
+    init_project,
+    project_name,
+    report_failure,
+    workdir_for,
+)
 from bulkrnaseq_toolkit import package_version
 
 snakemake_utils = pytest.importorskip("snakemake.utils")
@@ -77,3 +86,44 @@ def test_find_snakemake_prefers_bulkrnaseq_env(tmp_path):
     with pytest.raises(SystemExit, match="BULKRNASEQ_ENV is set"):
         find_snakemake({"BULKRNASEQ_ENV": str(tmp_path / "missing")}, "/nowhere/x", "/nowhere/python")
     assert find_snakemake({"PATH": ""}, str(tmp_path / "bin" / "bulkrnaseq"), "/nowhere/python") == exe
+
+
+SNAKEMAKE_LOG = """Error in rule ingest:
+    message: None
+    jobid: 6
+    output: /p/results/01_ingest/step.done
+    log: {log} (check log file(s) for error details)
+    shell:
+        Rscript run_step.R ingest
+Error in rule ingest:
+    log: {log} (check log file(s) for error details)
+"""
+
+
+def test_failed_step_logs_lists_each_failed_log_once():
+    text = SNAKEMAKE_LOG.format(log="/p/results/01_ingest/logs/ingest.log")
+    assert failed_step_logs(text) == [Path("/p/results/01_ingest/logs/ingest.log")]
+    assert failed_step_logs("Finished jobid: 0 (Rule: all)\n    log: /x.log") == []
+
+
+def test_report_failure_prints_the_end_of_the_failed_log(tmp_path, capsys):
+    step_log = tmp_path / "ingest.log"
+    step_log.write_text(
+        "".join(f"line {i}\n" for i in range(30))
+        + "Error: DE table x: the generic adapter needs columns$lfc\n"
+    )
+    (tmp_path / ".snakemake" / "log").mkdir(parents=True)
+    (tmp_path / ".snakemake" / "log" / "2026-01-01T000000.snakemake.log").write_text(
+        SNAKEMAKE_LOG.format(log=step_log)
+    )
+    report_failure(tmp_path, n_lines=3)
+    err = capsys.readouterr().err
+    assert "needs columns$lfc" in err and "line 28" in err and "line 26" not in err
+
+
+def test_ingest_and_modules_depend_on_the_toolkit_identity():
+    # A change to any toolkit code rewrites toolkit.json; every analysis step must re-run, ingest included.
+    text = (REPO / "workflow" / "rules" / "analysis.smk").read_text()
+    ingest_inputs = text.split("rule ingest:")[1].split("output:")[0]
+    assert "TOOLKIT_JSON" in ingest_inputs
+    assert "return [RESOLVED, TOOLKIT_JSON]" in text

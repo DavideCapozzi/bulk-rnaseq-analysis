@@ -4,7 +4,7 @@
 \alias{run_step_cli}
 \title{Run one workflow step}
 \usage{
-run_step_cli(step, config, module = NULL, repo = NULL)
+run_step_cli(step, config, module = NULL)
 }
 \arguments{
 \item{step}{\code{character(1)}. Step name.}
@@ -12,8 +12,6 @@ run_step_cli(step, config, module = NULL, repo = NULL)
 \item{config}{\code{character(1)}. Path to \verb{00_provenance/config_resolved.yaml} (or a project config).}
 
 \item{module}{\code{character(1)} or \code{NULL}. Module name for \code{step = "module"}.}
-
-\item{repo}{\code{character(1)} or \code{NULL}. Repository folder, used to record the git commit.}
 }
 \value{
 Paths written, invisibly.

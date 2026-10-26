@@ -16,8 +16,9 @@ Statistical guardrails live in the code, not in documentation:
 - sample metadata come only from the sample sheet, never from file or column names.
 
 Status: early development (0.x). Implemented modules: `qc`, `pca`, `contrasts`, `de_test`, `concordance`, `ora`,
-`volcano`. The others listed in [`inst/modules.yaml`](inst/modules.yaml) are skipped as "not implemented" until
-they are ported. Design notes: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Changes: [`CHANGELOG.md`](CHANGELOG.md).
+`volcano`. The others listed in [`inst/modules.yaml`](inst/modules.yaml) are skipped with the reason "not
+implemented" until they are ported; inputs not supported yet (MultiQC reports, coverage tracks, md5sum files) are
+refused rather than ignored. Design notes: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Changes: [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Requirements
 

@@ -1,4 +1,4 @@
-# Scenario (a): STAR counts + StringTie abundances + bedGraph + MultiQC, from synthetic fixtures.
+# Scenario (a): STAR counts + StringTie abundances, from synthetic fixtures.
 project:
   name: example_star
   organism: human
@@ -22,16 +22,6 @@ inputs:
     adapter: stringtie_gene_abundance
     files: "abundance/{input}_gene_abundance.tab"
     on_duplicate: sum
-  coverage:
-    files: "coverage/{input}_Signal.{multiplicity}.{strand_file}.out.bg"
-    multiplicity: [Unique]
-    strand_files: auto
-  qc:
-    multiqc:
-      - {id: aligned, file: multiqc/multiqc_report.html}
-  checksums:
-    file: md5sum.txt
-    exclude: ["*.fastq.gz"]
 resources:
   cache_dir: ../../results/example_star_resources
   items:

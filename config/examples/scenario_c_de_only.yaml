@@ -7,10 +7,12 @@ toolkit:
 inputs:
   base_dir: ../../tests/fixtures/scenario_c
   contrast_tables:
+    # df_residual: n samples - rank of the provider's design (3 vs 3, ~ condition: 6 - 2 = 4); 0 for a
+    # NOISeq run without replicates, whose posterior probabilities are then conditional on the contrast.
     - {id: treated_vs_control, adapter: deseq2, file: comparison.xlsx, sheet: DESeq2_results,
-       numerator: treated, denominator: control}
+       numerator: treated, denominator: control, df_residual: 4}
     - {id: treated_vs_control_noiseq, adapter: noiseq, file: noiseq_results.tsv,
-       numerator: treated, denominator: control}
+       numerator: treated, denominator: control, df_residual: 0}
 annotation:
   id_type: gene_symbol
 thresholds: {padj: 0.05, abs_fold_change: 1.5, posterior_prob: 0.8}

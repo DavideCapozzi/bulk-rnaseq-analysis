@@ -17,7 +17,7 @@ estimate_lfc_apeglm(se, contrasts, design, rows = NULL)
 }
 \value{
 Canonical contrast table with method \code{"deseq2_apeglm"}, \code{lfc_se} and \code{base_mean}; \code{df_residual} is the
-residual df of \code{design}, and attribute \code{exploratory} is \code{TRUE} when it equals 1.
+residual df of \code{design}, and extension column and attribute \code{exploratory} are \code{TRUE} when it equals 1.
 }
 \description{
 Dispersions are estimated once on an additive design (which must have at least 1 residual degree of

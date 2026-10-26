@@ -16,3 +16,12 @@ toy_se <- function(m, rd = NULL, cd = NULL) {
   cd <- cd %||% S4Vectors::DataFrame(sample_id = colnames(m), row.names = colnames(m))
   SummarizedExperiment::SummarizedExperiment(list(counts = m), rowData = rd, colData = cd)
 }
+
+# The tables and figures a module returned are declared in inst/modules.yaml (figures may add a _<suffix>).
+expect_registry_outputs <- function(res, module) {
+  m <- read_registry()[[module]]
+  testthat::expect_true(all(names(res$tables) %in% unlist(m$outputs)), info = paste(module, "tables"))
+  declared <- unlist(m$figures)
+  known <- vapply(names(res$figures), function(f) f %in% declared || any(startsWith(f, paste0(declared, "_"))), TRUE)
+  testthat::expect_true(all(known), info = paste(module, "figures"))
+}

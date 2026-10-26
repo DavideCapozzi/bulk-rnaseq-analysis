@@ -218,125 +218,42 @@ pc_drivers <- function(x, features, samples, qc = NULL, metrics = character(), o
 #' }
 #' @export
 run_pca <- function(inputs, params, context) {
+  params <- with_defaults(params, c("modules", "pca"))
   cfg <- context$cfg
   se <- inputs$se
-  org <- context$organism %||% "human"
   counts <- SummarizedExperiment::assay(se, "counts")
   rd <- as.data.frame(SummarizedExperiment::rowData(se))
   samples <- as.data.frame(SummarizedExperiment::colData(se))
   labels <- sample_labels(se, cfg)
-  factors <- unlist(params$separation_factors %||% sample_factors(se, cfg))
-  gf <- cfg$gene_filter %||% list()
-  main_sex <- gf$sex_genes %||% "drop_xist_y"
-  keep_for <- function(sex) {
-    filter_genes(se,
-      biotypes = gf$biotypes %||% c("protein_coding", "lncRNA"),
-      exclude_mitochondrial = gf$exclude_mitochondrial %||% TRUE, min_cpm = gf$min_cpm %||% 2,
-      min_samples = gf$min_samples %||% 2, sex_genes = sex, organism = org,
-      x_inactivation_genes = resolve_gene_list("x_inactivation", context$gene_lists)
-    )
-  }
-  ntops <- vapply(unlist(params$ntop %||% list(500, 1000, 2000, "all")), as.character, "")
-  ntop_num <- function(n) if (identical(n, "all")) Inf else as.numeric(n)
-  scores_ntop <- as.character(params$scores_ntop %||% 1000)
-  transforms <- unlist(params$transforms %||% c("vst", "logcpm_tmm"))
-  sex_variants <- unlist(params$sex_gene_variants %||% c("keep", "drop_xist_y", "drop_xy"))
-  exclusions <- c("none", unlist(params$symbol_exclusion_variants %||% character()))
-  subsets <- unlist(params$gene_subsets %||% "all")
-  data_variants <- c("original", if (isTRUE(params$thinning)) "thinned")
+  # An empty list (the schema default) means every factor of samples.factors.
+  factors <- unlist(params$separation_factors)
+  if (length(factors) == 0) factors <- sample_factors(se, cfg)
+  main_sex <- with_defaults(cfg$gene_filter, "gene_filter")$sex_genes
+  keep_for <- function(sex) config_filter_genes(se, cfg, context, sex)
   thinned <- if (isTRUE(params$thinning)) {
     withr::with_seed(context$seed %||% 1, edgeR::thinCounts(counts, target.size = min(colSums(counts))))
   }
-  summary_rows <- list()
-  scores_rows <- list()
-  main <- NULL
-  for (sex in sex_variants) {
-    keep_sex <- keep_for(sex)
-    for (excl in exclusions) {
-      keep <- keep_sex
-      if (excl != "none") keep <- keep & !grepl(excl, rd$gene_symbol)
-      genes <- merge_gene_flags(
-        data.frame(
-          feature_id = rd$feature_id[keep], chromosome = rd$chromosome[keep],
-          expression = rowMeans(log_cpm(counts[keep, , drop = FALSE]))
-        ),
-        inputs$gene_flags
-      )
-      for (dat in data_variants) {
-        x0 <- if (dat == "original") counts[keep, , drop = FALSE] else thinned[keep, , drop = FALSE]
-        for (sub in subsets) {
-          xs <- x0[gene_subset(genes, sub, org), , drop = FALSE]
-          mats <- list()
-          if ("vst" %in% transforms) mats$vst <- vst_matrix(xs)
-          if ("logcpm_tmm" %in% transforms) mats$logcpm_tmm <- log_cpm(xs)
-          is_main <- sex == main_sex && excl == "none" && dat == "original" && sub == subsets[[1]]
-          if (is_main) main <- c(mats, list(keep = keep))
-          for (tr in names(mats)) {
-            for (nt in ntops) {
-              p <- pca_top_variance(mats[[tr]], ntop_num(nt))
-              ve <- c(p$ve, NA, NA)[1:3]
-              sep <- vapply(1:3, function(k) {
-                if (k <= ncol(p$x)) pc_separation(p$x[, k], samples, factors) else NA_character_
-              }, "")
-              o <- order(p$x[, 1] * orientation_sign(p$x[, 1], samples, params$orient_pc1))
-              summary_rows[[length(summary_rows) + 1]] <- data.frame(
-                sex_genes = sex, symbol_exclusion = excl, data = dat, gene_subset = sub, transform = tr,
-                ntop = nt, n_genes = nrow(xs), n_genes_used = p$n_genes, pc1_var = ve[[1]], pc2_var = ve[[2]],
-                pc3_var = ve[[3]], pc1_separates = sep[[1]], pc2_separates = sep[[2]], pc3_separates = sep[[3]],
-                pc1_order = paste(labels[o], collapse = " < "), stringsAsFactors = FALSE
-              )
-              if (nt == scores_ntop && excl == "none" && dat == "original" && sub == subsets[[1]]) {
-                scores_rows[[length(scores_rows) + 1]] <- pca_scores_table(p, samples, labels, factors, sex, tr)
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+  grid <- pca_grid(counts, thinned, rd, samples, labels, factors, params, keep_for, main_sex,
+    gene_flags = inputs$gene_flags, organism = context$organism %||% "human"
+  )
+  main <- grid$main
   if (is.null(main)) {
     # The main gene filter is not among the grid variants: correlations and drivers still use it.
     keep <- keep_for(main_sex)
     xk <- counts[keep, , drop = FALSE]
     main <- list(vst = vst_matrix(xk), logcpm_tmm = log_cpm(xk), keep = keep)
   }
-  tables <- list(
-    pca_summary = do.call(rbind, summary_rows),
-    pca_scores = do.call(rbind, scores_rows)
-  )
+  tables <- list(pca_summary = grid$summary, pca_scores = grid$scores)
   figures <- list()
   if (!is.null(tables$pca_scores)) figures$pca <- plot_pca_scores(tables$pca_scores, factors)
   if ("tpm" %in% SummarizedExperiment::assayNames(se)) {
-    tpm <- SummarizedExperiment::assay(se, "tpm")[keep_for(params$abundance_sex_genes %||% "keep"), , drop = FALSE]
+    tpm <- SummarizedExperiment::assay(se, "tpm")[keep_for(params$abundance_sex_genes), , drop = FALSE]
     p <- pca_top_variance(log2(tpm + 1), Inf)
     tables$pca_scores_log2tpm <- pca_scores_table(p, samples, labels, factors, NULL, "log2_tpm_plus1", n_pc = 2)
   }
-  if (!is.null(main)) {
-    pairs <- list()
-    if (!is.null(main$logcpm_tmm)) {
-      cs <- stats::cor(main$logcpm_tmm, method = "spearman")
-      pairs$spearman <- pair_table(cs, "logcpm_tmm", "spearman")
-      figures$sample_correlation <- plot_sample_correlation(cs, labels)
-    }
-    if (!is.null(main$vst)) {
-      pairs$pearson <- pair_table(stats::cor(main$vst, method = "pearson"), "vst", "pearson")
-      tables$sample_distances <- pair_table(as.matrix(stats::dist(t(main$vst))), "vst", "euclidean")
-    }
-    if (length(pairs)) tables$sample_correlations <- do.call(rbind, unname(pairs))
-    if (!isFALSE(params$pc_drivers) && !is.null(main$vst)) {
-      qc_all <- rbind(inputs$qc, expression_qc_from_params(se, cfg$modules$qc %||% list(), context))
-      d <- pc_drivers(main$vst, rd[main$keep, , drop = FALSE], samples, qc_wide(qc_all, colnames(se)),
-        metrics = unlist(params$qc_metrics_for_drivers %||% character()), orient = params$orient_pc1,
-        top_n = params$top_loadings %||% 40
-      )
-      if (!is.null(d$pc1_vs_qc)) tables$pc1_vs_qc <- d$pc1_vs_qc
-      tables$pc1_loading_vs_gene_features <- d$pc1_loading_vs_gene_features
-      tables$pc1_top_loadings <- d$pc1_top_loadings
-      figures$pc1_loading_vs_gene_span <- plot_loading_vs_span(d$genes, loading_directions(samples, params$orient_pc1))
-    }
-  }
+  extra <- pca_main_outputs(main, se, rd, samples, labels, inputs$qc, params, context)
   list(
-    tables = tables, figures = figures,
+    tables = c(tables, extra$tables), figures = c(figures, extra$figures),
     meta = list(
       pca_summary = list(
         description = paste(
@@ -347,7 +264,7 @@ run_pca <- function(inputs, params, context) {
         units = list(pc1_var = "percent of total variance"), seed = if (isTRUE(params$thinning)) context$seed %||% 1,
         separation_factors = factors
       ),
-      pca_scores = list(description = paste0("PC scores, ", scores_ntop, " most variable genes.")),
+      pca_scores = list(description = paste0("PC scores, ", params$scores_ntop, " most variable genes.")),
       sample_correlations = list(description = paste0("Sample correlations, main gene filter (", main_sex, ").")),
       sample_distances = list(description = paste0("Euclidean distances on VST, main gene filter (", main_sex, ").")),
       pc1_vs_qc = list(description = "PC1-3 scores (VST, all filtered genes) vs QC metrics; descriptive."),
@@ -355,6 +272,104 @@ run_pca <- function(inputs, params, context) {
     ),
     figure_sizes = list(pca = c(11, 9), sample_correlation = c(6, 5), pc1_loading_vs_gene_span = c(7, 4.5))
   )
+}
+
+# The PCA grid: one pca_summary row per sex-gene variant x symbol exclusion x data (original, thinned) x gene
+# subset x transform x number of genes; PC scores for scores_ntop on the unexcluded original data and first
+# subset; and the matrices of the main gene filter (NULL when its sex-gene variant is not in the grid).
+pca_grid <- function(counts, thinned, rd, samples, labels, factors, params, keep_for, main_sex, gene_flags,
+                     organism) {
+  ntops <- vapply(unlist(params$ntop), as.character, "")
+  scores_ntop <- as.character(params$scores_ntop)
+  transforms <- unlist(params$transforms)
+  subsets <- unlist(params$gene_subsets)
+  data_variants <- c("original", if (!is.null(thinned)) "thinned")
+  summary_rows <- list()
+  scores_rows <- list()
+  main <- NULL
+  for (sex in unlist(params$sex_gene_variants)) {
+    keep_sex <- keep_for(sex)
+    for (excl in c("none", unlist(params$symbol_exclusion_variants))) {
+      keep <- keep_sex
+      if (excl != "none") keep <- keep & !grepl(excl, rd$gene_symbol)
+      genes <- merge_gene_flags(
+        data.frame(
+          feature_id = rd$feature_id[keep], chromosome = rd$chromosome[keep],
+          expression = rowMeans(log_cpm(counts[keep, , drop = FALSE]))
+        ),
+        gene_flags
+      )
+      for (dat in data_variants) {
+        x0 <- if (dat == "original") counts[keep, , drop = FALSE] else thinned[keep, , drop = FALSE]
+        for (sub in subsets) {
+          xs <- x0[gene_subset(genes, sub, organism), , drop = FALSE]
+          mats <- list()
+          if ("vst" %in% transforms) mats$vst <- vst_matrix(xs)
+          if ("logcpm_tmm" %in% transforms) mats$logcpm_tmm <- log_cpm(xs)
+          first <- excl == "none" && dat == "original" && sub == subsets[[1]]
+          if (first && sex == main_sex) main <- c(mats, list(keep = keep))
+          for (tr in names(mats)) {
+            for (nt in ntops) {
+              p <- pca_top_variance(mats[[tr]], if (identical(nt, "all")) Inf else as.numeric(nt))
+              variant <- data.frame(
+                sex_genes = sex, symbol_exclusion = excl, data = dat, gene_subset = sub, transform = tr,
+                ntop = nt, n_genes = nrow(xs), stringsAsFactors = FALSE
+              )
+              summary_rows[[length(summary_rows) + 1]] <- cbind(
+                variant, pca_summary_stats(p, samples, labels, factors, params$orient_pc1)
+              )
+              if (first && nt == scores_ntop) {
+                scores_rows[[length(scores_rows) + 1]] <- pca_scores_table(p, samples, labels, factors, sex, tr)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  list(summary = do.call(rbind, summary_rows), scores = do.call(rbind, scores_rows), main = main)
+}
+
+# Variance of PC1-3, the factor each one separates and the sample order along the oriented PC1.
+pca_summary_stats <- function(p, samples, labels, factors, orient) {
+  ve <- c(p$ve, NA, NA)[1:3]
+  sep <- vapply(1:3, function(k) {
+    if (k <= ncol(p$x)) pc_separation(p$x[, k], samples, factors) else NA_character_
+  }, "")
+  o <- order(p$x[, 1] * orientation_sign(p$x[, 1], samples, orient))
+  data.frame(
+    n_genes_used = p$n_genes, pc1_var = ve[[1]], pc2_var = ve[[2]], pc3_var = ve[[3]],
+    pc1_separates = sep[[1]], pc2_separates = sep[[2]], pc3_separates = sep[[3]],
+    pc1_order = paste(labels[o], collapse = " < "), stringsAsFactors = FALSE
+  )
+}
+
+# Sample correlations and distances, and the PC1 drivers, on the main gene filter.
+pca_main_outputs <- function(main, se, rd, samples, labels, qc, params, context) {
+  tables <- list()
+  figures <- list()
+  pairs <- list()
+  if (!is.null(main$logcpm_tmm)) {
+    cs <- stats::cor(main$logcpm_tmm, method = "spearman")
+    pairs$spearman <- pair_table(cs, "logcpm_tmm", "spearman")
+    figures$sample_correlation <- plot_sample_correlation(cs, labels)
+  }
+  if (!is.null(main$vst)) {
+    pairs$pearson <- pair_table(stats::cor(main$vst, method = "pearson"), "vst", "pearson")
+    tables$sample_distances <- pair_table(as.matrix(stats::dist(t(main$vst))), "vst", "euclidean")
+  }
+  if (length(pairs)) tables$sample_correlations <- do.call(rbind, unname(pairs))
+  if (!isFALSE(params$pc_drivers) && !is.null(main$vst)) {
+    qc_all <- rbind(qc, expression_qc_from_params(se, context$cfg$modules$qc, context))
+    d <- pc_drivers(main$vst, rd[main$keep, , drop = FALSE], samples, qc_wide(qc_all, colnames(se)),
+      metrics = unlist(params$qc_metrics_for_drivers), orient = params$orient_pc1, top_n = params$top_loadings
+    )
+    if (!is.null(d$pc1_vs_qc)) tables$pc1_vs_qc <- d$pc1_vs_qc
+    tables$pc1_loading_vs_gene_features <- d$pc1_loading_vs_gene_features
+    tables$pc1_top_loadings <- d$pc1_top_loadings
+    figures$pc1_loading_vs_gene_span <- plot_loading_vs_span(d$genes, loading_directions(samples, params$orient_pc1))
+  }
+  list(tables = tables, figures = figures)
 }
 
 pca_scores_table <- function(p, samples, labels, factors, sex, transform, n_pc = 3) {

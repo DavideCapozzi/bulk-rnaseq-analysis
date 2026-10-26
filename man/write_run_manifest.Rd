@@ -4,14 +4,12 @@
 \alias{write_run_manifest}
 \title{Write the run manifest}
 \usage{
-write_run_manifest(cfg, out, repo = NULL)
+write_run_manifest(cfg, out)
 }
 \arguments{
 \item{cfg}{Config from \code{\link[=read_config]{read_config()}}.}
 
 \item{out}{\code{character(1)}. Project output folder.}
-
-\item{repo}{\code{character(1)} or \code{NULL}. Toolkit repository, read only when \code{toolkit.json} is missing.}
 }
 \value{
 Path of \code{run_manifest.json}, invisibly.
@@ -20,8 +18,8 @@ Path of \code{run_manifest.json}, invisibly.
 Records what is needed to reproduce a run: md5 of the resolved config, toolkit identity (version pinned by
 the config, git commit, dirty flag, code md5, development mode), versions of R and of the packages used, md5
 of every input file, resources, and every module's status with its reason. The toolkit identity is the one
-the workflow checked before the run (\verb{00_provenance/toolkit.json}); without it, the git state of \code{repo} is
-read now. Wall-clock times go to a separate \code{run_timestamps.json}, so the manifest is identical across runs
+the workflow checked before the run (\verb{00_provenance/toolkit.json}; recorded as unknown when absent).
+Wall-clock times go to a separate \code{run_timestamps.json}, so the manifest is identical across runs
 of the same inputs.
 }
 \examples{

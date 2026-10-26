@@ -11,8 +11,9 @@
 #' @param min_count,min_samples Pre-filter: genes with at least `min_count` reads in at least `min_samples`
 #'   samples are tested.
 #' @param alpha `numeric(1)`. `alpha` of `DESeq2::results()`, the FDR target of independent filtering.
-#' @return Canonical contrast table (method `"deseq2_wald"`, `inference_scope = "sample"`) with attributes
-#'   `df_residual`, `exploratory`, `design_rank`, `n_samples`.
+#' @return Canonical contrast table (method `"deseq2_wald"`, `inference_scope = "sample"`, extension column
+#'   `exploratory`: `TRUE` with 1 residual degree of freedom) with attributes `exploratory`, `design_rank`,
+#'   `n_samples`.
 #' @examples
 #' \donttest{
 #' set.seed(1)
@@ -50,7 +51,8 @@ deseq2_wald <- function(se, design, min_count = 10, min_samples = 3, alpha = 0.1
   ct <- new_contrast_table(design$id, rownames(res), res$log2FoldChange,
     gene_symbol = SummarizedExperiment::rowData(se)$gene_symbol[keep], lfc_se = res$lfcSE, stat = res$stat,
     pvalue = res$pvalue, padj = res$padj, base_mean = res$baseMean, significance_metric = "padj",
-    method = "deseq2_wald", df_residual = guard$df, source = "computed", inference_scope = "sample"
+    method = "deseq2_wald", df_residual = guard$df, source = "computed", inference_scope = "sample",
+    extra = data.frame(exploratory = rep(guard$exploratory, nrow(res)))
   )
   attr(ct, "exploratory") <- guard$exploratory
   attr(ct, "design_rank") <- as.integer(qr(stats::model.matrix(f, cd))$rank)
@@ -126,18 +128,19 @@ compare_contrasts <- function(computed, imported, thresholds) {
 #' }
 #' @export
 run_de_test <- function(inputs, params, context) {
+  params <- with_defaults(params, c("modules", "de_test"))
   cfg <- context$cfg
   designs <- Filter(function(d) !is.null(d$contrast), cfg$designs %||% list())
   if (length(designs) == 0) abort("de_test module: no design with a contrast in the config (designs[].contrast)")
-  thresholds <- cfg$thresholds %||% list(padj = 0.05, abs_fold_change = 1.5)
-  pf <- params$prefilter %||% list()
-  alpha <- params$results_alpha %||% 0.1
+  thresholds <- with_defaults(cfg$thresholds, "thresholds")
+  pf <- params$prefilter
+  alpha <- params$results_alpha
   pieces <- list()
   summary_rows <- list()
   for (d in designs) {
     engine <- d$engine %||% "deseq2"
     if (engine != "deseq2") abort("de_test design '", d$id, "': engine '", engine, "' is not implemented (use deseq2)")
-    ct <- deseq2_wald(inputs$se, d, pf$min_count %||% 10, pf$min_samples %||% 3, alpha)
+    ct <- deseq2_wald(inputs$se, d, pf$min_count, pf$min_samples, alpha)
     cls <- classify_de(ct, thresholds)
     summary_rows[[d$id]] <- data.frame(
       design_id = d$id, formula = d$formula, engine = engine, contrast = paste(unlist(d$contrast), collapse = ","),
@@ -151,7 +154,7 @@ run_de_test <- function(inputs, params, context) {
   ct <- bind_contrast_tables(pieces)
   tables <- list(contrast_stats = ct, design_summary = do.call(rbind, unname(summary_rows)))
   cmp <- list()
-  for (w in params$compare_with %||% list()) {
+  for (w in params$compare_with) {
     imp <- inputs$contrast_stats
     imp <- if (!is.null(imp)) imp[imp$contrast_id == w$contrast_table, , drop = FALSE]
     if (is.null(imp) || nrow(imp) == 0) {

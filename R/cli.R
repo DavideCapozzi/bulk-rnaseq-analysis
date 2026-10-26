@@ -6,14 +6,13 @@
 #' @param step `character(1)`. Step name.
 #' @param config `character(1)`. Path to `00_provenance/config_resolved.yaml` (or a project config).
 #' @param module `character(1)` or `NULL`. Module name for `step = "module"`.
-#' @param repo `character(1)` or `NULL`. Repository folder, used to record the git commit.
 #' @return Paths written, invisibly.
 #' @examples
 #' \donttest{
 #' # run_step_cli("capabilities", "results/00_provenance/config_resolved.yaml")
 #' }
 #' @export
-run_step_cli <- function(step, config, module = NULL, repo = NULL) {
+run_step_cli <- function(step, config, module = NULL) {
   cfg <- read_config(config)
   out <- output_dir(cfg)
   switch(step,
@@ -24,7 +23,7 @@ run_step_cli <- function(step, config, module = NULL, repo = NULL) {
       done_file(file.path(out, "01_ingest"), written)
     },
     module = run_module_step(cfg, out, module),
-    provenance = write_run_manifest(cfg, out, repo),
+    provenance = write_run_manifest(cfg, out),
     report = write_report(cfg, out),
     abort("run_step_cli(): unknown step '", step, "'")
   )
@@ -48,6 +47,13 @@ project_gene_lists <- function(cfg) {
 write_capabilities <- function(cfg, out) {
   samples <- if (!is.null(cfg$samples$sheet)) {
     read_sample_sheet(config_path(cfg, cfg$samples$sheet), cfg$samples$factors %||% list())
+  }
+  missing <- Filter(Negate(file.exists), configured_input_files(cfg, samples))
+  if (length(missing) > 0) {
+    abort(
+      length(missing), " input file(s) not found (paths from inputs.base_dir and the sample sheet): ",
+      paste(utils::head(missing, 5), collapse = ", "), if (length(missing) > 5) ", ..."
+    )
   }
   caps <- resolve_capabilities(cfg, samples, read_registry(), project_gene_lists(cfg))
   dir <- file.path(out, "00_provenance")

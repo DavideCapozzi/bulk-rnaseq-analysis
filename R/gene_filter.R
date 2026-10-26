@@ -85,6 +85,17 @@ filter_genes <- function(se, biotypes = c("protein_coding", "lncRNA"), exclude_m
   unname(out)
 }
 
+# filter_genes() with the project's gene_filter settings; `sex_genes` overrides gene_filter.sex_genes (variants).
+config_filter_genes <- function(se, cfg, context, sex_genes = NULL) {
+  gf <- with_defaults(cfg$gene_filter, "gene_filter")
+  filter_genes(se,
+    biotypes = unlist(gf$biotypes), exclude_mitochondrial = gf$exclude_mitochondrial, min_cpm = gf$min_cpm,
+    min_samples = gf$min_samples, sex_genes = sex_genes %||% gf$sex_genes,
+    organism = context$organism %||% "human",
+    x_inactivation_genes = resolve_gene_list("x_inactivation", context$gene_lists)
+  )
+}
+
 #' Log2 counts per million after library normalisation
 #'
 #' TMM (default) assumes that most genes are not differentially expressed. When one sample carries a large

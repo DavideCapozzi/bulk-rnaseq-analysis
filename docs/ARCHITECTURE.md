@@ -1,8 +1,8 @@
 # Architecture
 
 Status: 0.x, partly implemented. Modules implemented: `qc`, `pca`, `contrasts`, `de_test`, `concordance`, `ora`,
-`volcano`; the others are registered and skipped as "not implemented". Sections marked **[I]** are design intentions
-not yet implemented or verified; **[V]** statements cite a file in this repository.
+`volcano`; the others are registered and skipped with the reason "not implemented". Statements marked **[I]** are
+design intentions not yet implemented; everything else describes the code in this repository.
 
 `bulkrnaseq` is an R package plus a Snakemake workflow that turns the outputs of an RNA-seq provider
 (gene counts, abundances, normalised counts, differential-expression tables, coverage tracks, QC reports)
@@ -27,19 +27,19 @@ The design goals, in order:
                  ┌────────────────────────── Snakemake (workflow/) ──────────────────────────┐
 config.yaml ───► │ validate config ─► resolve capabilities ─► rules per module ─► report/export │
 samples.tsv      └──────┬───────────────────────────┬─────────────────────────┬──────────────┘
-                        │ thin wrappers (workflow/scripts/*.R, *.py) call package functions
+                        │ one thin wrapper (workflow/scripts/run_step.R) calls the package
                         ▼                           ▼                         ▼
    ┌──────────────┐   ┌──────────────────┐   ┌────────────────────┐   ┌──────────────────────┐
    │  Adapters    │──►│ Canonical objects│──►│  Analysis modules  │──►│ Writers and reports  │
    │ (I/O only)   │   │ + validate_*()   │   │ (pure functions)   │   │ (I/O only)           │
    └──────────────┘   └──────────────────┘   └────────────────────┘   └──────────────────────┘
-    read_star_counts    SummarizedExperiment   run_<module>(objects,     write_table() + .meta.json
-    read_stringtie      contrast table         params) → list(tables,    write_figure()
-    read_matrix_table   QC long table          figures, meta)            write_module_xlsx()
-    read_de_table       coverage query                                   write_run_manifest()
-    read_multiqc        resource objects                                 write_ingest_report()
-    read_bedgraph_regions
-    check_md5sum, read_gtf, read_gene_sets, read_reference_profiles
+    read_star_counts    SummarizedExperiment   run_<module>(inputs,      write_table() + .meta.json
+    read_stringtie      contrast table         params, context) →        write_figure()
+    read_matrix_table   QC long table          list(tables, figures,     write_xlsx_deterministic()
+    read_de_table       resource paths         meta)                     write_module_outputs()
+    read_gtf_genes                                                       write_ingest_outputs()
+                                                                         write_run_manifest(), write_report()
+    [I] read_multiqc, read_bedgraph_regions, check_md5sum, read_gene_sets, read_reference_profiles
 ```
 
 Rules:
@@ -47,15 +47,19 @@ Rules:
 - **Adapters** turn one file format into one canonical object. They are the only package functions besides
   writers that touch the file system. They never infer sample metadata from file or column names: the sample
   sheet maps every input file or column to a `sample_id` through `input_column`.
-- **Canonical objects** have a validator (`validate_se()`, `validate_contrast_table()`, `validate_qc_table()`,
-  `validate_coverage_query()`) that every adapter calls before returning and every module calls on entry.
-- **Modules** are pure: inputs are canonical objects, a parameter list and resource objects; output is
-  `list(tables = <named list of data.frames>, figures = <named list of ggplot/grob>, meta = <list>)`.
-  No `setwd`, no global options, no file access, no `library()` calls, no column access by position.
+- **Canonical objects** have a validator (`validate_se()`, `validate_contrast_table()`, `validate_qc_table()`)
+  that every adapter and constructor (`new_contrast_table()`, `bind_contrast_tables()`) calls before returning,
+  so modules receive validated objects.
+- **Modules** are pure functions `run_<name>(inputs, params, context)`: `inputs` holds canonical objects,
+  `params` the module's config section (defaults from the schema, `with_defaults()`), `context` the whole config,
+  organism, gene lists, seed and the paths of verified resources; output is
+  `list(tables = <named list of data.frames>, figures = <named list of ggplot>, meta = <list>)`.
+  No `setwd`, no global options, no `library()` calls, no column access by position; the only files a module
+  reads are the cached resources it is given (e.g. the KEGG table for `ora`).
 - **Writers** serialise tables (TSV, gzip for matrices) with a sidecar `<name>.meta.json`, figures (PNG with
   fixed device and size), per-module Excel workbooks with an `Info` sheet, and the run manifest.
-- **Wrappers** in `workflow/scripts/` contain only argument handling and one call into the package
-  (`bulkrnaseq::run_module_cli()`, `bulkrnaseq::run_ingest_cli()`), so all logic is testable with `testthat`.
+- **Wrapper**: `workflow/scripts/run_step.R` loads the package from the checkout and makes one call,
+  `bulkrnaseq::run_step_cli(step, config, module)`, so all logic is testable with `testthat`.
 
 ## 2. Canonical objects
 
@@ -92,11 +96,13 @@ Fixed columns, in this order:
 | `source` | chr | `computed` or `imported:<file>` |
 
 Extension columns are allowed after the fixed ones when the producer documents them (e.g. `posterior_prob`
-for NOISeq, `ave_log2cpm` for the log-CPM estimator, `fold_change_signed` kept from provider tables).
+for NOISeq, `ave_log2cpm` for the log-CPM estimator, `fold_change_provider` kept from provider tables, and
+`exploratory`: `TRUE` when the producing model had 1 residual degree of freedom; `volcano_points` and the ORA
+tables carry it over).
 `significance_values(ct)` returns `padj` or `posterior_prob` according to `significance_metric`, so ORA and
 volcano plots never need to relabel one as the other.
 
-### 2.3 Coverage
+### 2.3 Coverage [I]
 
 Coverage tracks (STAR bedGraph, one file per sample × multiplicity × strand) are never loaded whole.
 `read_bedgraph_regions(path, regions)` streams the file once, keeps only intervals overlapping the requested
@@ -107,8 +113,8 @@ config or inferred from reference genes on known strands and written to a table.
 
 ### 2.4 QC: long table
 
-`sample_id`, `metric`, `value` (dbl), `source` (`multiqc:<report>:<plot>`, `star_counts:N_*`, `expression`,
-`imported:<file>`). Wide views are produced by writers only.
+`sample_id`, `metric`, `value` (dbl), `source` (`star_counts`, `expression`; [I] `multiqc:<report>:<plot>`,
+`imported:<file>`). The `qc` module writes the wide view (`qc_wide()`).
 
 ### 2.5 Resources
 
@@ -125,13 +131,13 @@ conditions (e.g. at least two contrasts) and the levels it provides. Levels:
 
 | Level | Provided by |
 |---|---|
-| `counts` | STAR ReadsPerGene (2 or 4 columns), generic matrix with `kind: counts` (integers checked) |
+| `counts` | STAR ReadsPerGene (2 or 4 columns), matrix table under `inputs.counts` (integers checked) |
 | `abundance` | StringTie gene_abundance (TPM, FPKM), generic matrix with `kind: tpm`/`fpkm` |
-| `normalized` | generic matrix with `kind: normalized`; never upgraded to `counts` |
+| `normalized` | matrix table under `inputs.normalized`; never upgraded to `counts` |
 | `contrast_stats` | imported DE tables; modules `contrasts` and `de_test` |
 | `ranked` | derived from any `contrast_stats` with a per-gene statistic (`lfc` or `stat`) |
-| `coverage` | bedGraph |
-| `qc` | MultiQC, STAR `N_*` rows, imported QC tables |
+| `coverage` | [I] bedGraph |
+| `qc` | STAR `N_*` rows; [I] MultiQC, imported QC tables |
 
 The Snakefile resolves capabilities before building the DAG: start from the levels provided by the inputs,
 add levels provided by enabled modules whose requirements are met, repeat until stable. Modules whose
@@ -164,9 +170,9 @@ they never fail the run silently or abort it.
 | 18 | `coverage` | — | — | — | — | — | R | — | annotation exons |
 | 19 | `covariates` | — | — | — | R | — | — | — | annotation exons, transcript FASTA |
 
-Example (scenario c, one DESeq2 table): `contrast_stats` and `ranked` are available; `contamination_sets`,
-`geneset_test`, `ora`, `volcano` run; `concordance` runs only if two or more contrast tables are given;
-`pca`, `markers`, `contrasts`, `signatures`, `power` (BCV) and per-sample scores are skipped with a reason.
+Example (scenario c, a DESeq2 and a NOISeq table): `contrast_stats` and `ranked` are available; `ora` and
+`volcano` run; `concordance` would run with a contrast pair; `qc`, `pca`, `contrasts` and `de_test` are skipped
+because there are no counts, and modules not yet implemented say so.
 
 ## 4. Statistical guardrails (in code)
 
@@ -181,14 +187,16 @@ Example (scenario c, one DESeq2 table): `contrast_stats` and `ranked` are availa
   `conditional_on_contrast` — a test whose units are genes for one given contrast (cameraPR, fgsea, ORA, binomial
   sign tests). cameraPR accounts for inter-gene correlation but still tests genes for a given contrast, not
   samples, so on a contrast between single libraries it stays `conditional_on_contrast`.
-- **Gene-permutation tests.** Adjusted p-values of pre-ranked fgsea are labelled `ranking_only` (CHANGELOG,
-  methodological change): they order sets within a contrast and are not used to select sets downstream.
+- **Gene-permutation tests [I]** (module `geneset_test`). Adjusted p-values of pre-ranked fgsea will be labelled
+  `ranking_only`: they order sets within a contrast and are not used to select sets downstream.
+- **Enforced by the writer**: `write_module_outputs()` refuses a table with a p-value column (`pvalue`, `padj`,
+  `p.adjust`, `qvalue`) and no `inference_scope` column.
 - **Randomness.** Every function with a random step takes `seed`, runs inside `withr::with_seed()`, and
   writes `seed` and `resampling_unit` (e.g. `genes`, `reads (binomial thinning)`) to the metadata.
 - **Imported DE tables are not recomputed.** Thresholds (`padj`, `|fold change|`, posterior probability) come
   from the config; the significance metric keeps its name.
-- **Units are declared**: every numeric table column has a unit or scale in its `.meta.json` (`cpm`,
-  `log2_cpm_tmm_prior2`, `tpm`, `counts`, `log2_ratio`, `fraction`, `correlation`).
+- **Units are declared** in each table's `.meta.json` for the main numeric columns (`log2_ratio`,
+  `log2_cpm_tmm_prior2`, `normalized_counts`, percentages); a unit for every numeric column is **[I]**.
 
 ## 5. Gene identifiers and organisms
 
@@ -197,7 +205,7 @@ Example (scenario c, one DESeq2 table): `contrast_stats` and `ranked` are availa
 - Duplicated IDs in count inputs follow `on_duplicate: error | sum | first` (default `error`).
 - `inst/organisms.yaml` holds OrgDb, KEGG code, MSigDB species name, Y and mitochondrial chromosome names
   and the mitochondrial symbol prefix. Only `human` is implemented and tested. No other file in the package may
-  contain organism-specific strings; a lint test greps for them.
+  contain organism-specific strings; a test (`test-samples-registry.R`) greps for them.
 
 ## 6. Output layout
 
@@ -216,13 +224,15 @@ Under `project.output_dir`:
   samples.tsv              colData
   contrasts.tsv.gz         imported contrast tables (canonical)
   qc_metrics.tsv           QC long table
-  multiqc/                 decoded MultiQC plot data (JSON) and general statistics
-  checksums.tsv            md5sum verification (status per file)
+  normalization_check.tsv  provider normalisation vs raw counts (when both are configured)
+  input_files.tsv          input files with md5, adapter and parameters
+  objects/                 R objects passed to the modules (se.rds, contrast_stats.rds, qc.rds)
+  [I] multiqc/ (decoded MultiQC data), checksums.tsv (md5sum verification)
   ingest_report.md
 NN_<module>/
   tables/<name>.tsv[.gz] + <name>.meta.json
   figures/<name>.png
-  logs/<module>.log
+  logs/module.log
 report/
   summary.md
   NN_<module>.xlsx         when export.xlsx is true; first sheet "Info" with parameters
@@ -230,18 +240,20 @@ report/
 
 Module numbers are fixed in `inst/modules.yaml`, so a skipped module leaves a gap rather than renumbering.
 Tables use English snake_case column names. Figures are deterministic: fixed sizes and DPI, explicit legend order,
-seeded label repulsion. Excel files are written with fixed document properties and zip timestamps so that two
-runs produce identical files **[I]**.
+seeded label repulsion. Excel files are written with fixed document properties and zip timestamps, so two runs
+produce identical files (checked by the md5 comparison in CI).
 
 ## 7. Configuration
 
 - One YAML per project plus a sample sheet TSV, validated with the JSON Schema in `config/schema.yaml` through
-  `snakemake.utils.validate` (defaults filled from the schema). The package also validates in R
-  (`validate_config()`) so functions can be called without Snakemake.
+  `snakemake.utils.validate` (defaults filled from the schema). The schema is strict for the implemented
+  modules: an unknown parameter is an error, not a silent no-op. The package fills the same defaults in R
+  (`read_config()`, `with_defaults()`) and checks the cross-field rules (`validate_config()`), so functions can be
+  called without Snakemake; inputs whose adapter is not implemented yet are refused.
 - Thresholds, priors, cutoffs, seeds, numbers of replicates and gene lists live in the config or in resource files.
-- Analysis variants (sensitivity analyses) are parameter lists, not code: e.g.
-  `contrasts.norm_methods: [TMM, RLE, upperquartile, none, reference]`, `pca.gene_subsets`, `concordance.strata`.
-- `docs/CONFIG.md` is generated from the schema.
+- Analysis variants (sensitivity analyses) are parameter lists, not code: e.g. `pca.sex_gene_variants`,
+  `pca.symbol_exclusion_variants`, `pca.ntop`, `concordance.thresholds`.
+- [I] `docs/CONFIG.md` generated from the schema.
 
 ### 7.1 Projects and the launcher
 
@@ -287,29 +299,32 @@ from `PATH`; that folder is put first on `PATH`, so `Rscript` comes from the sam
 
 ## 8. Extending
 
-Adding an adapter or a module = one exported function + one registry entry (`inst/modules.yaml` or the
-adapter table in the schema) + one schema fragment + tests on fixtures + a section in `docs/MODULES.md`.
-The generic module rule and wrapper need no change. `CONTRIBUTING.md` walks through an example.
+Adding a module = one exported function `run_<name>(inputs, params, context)` + its registry entry in
+`inst/modules.yaml` (levels, resources, conditions, outputs, figures, caveats) + a strict schema fragment under
+`modules.<name>` + tests on synthetic data that also call `expect_registry_outputs()`. Adding an adapter = one
+function returning a canonical object + its `enum` value in the schema + a fixture. The generic module rule and
+the wrapper need no change.
 
 ## 9. Testing strategy
 
 | Layer | Tests |
 |---|---|
-| Adapters | One fixture per format generated by `tests/fixtures/make_fixtures.R` (seeded, < 200 KB each): STAR 2- and 4-column with `N_*` rows, StringTie with a duplicated gene ID, Excel with several sheets, a sheet name containing `>` and `<dimension ref="A1"/>`, signed FoldChange, a NOISeq table, a bedGraph pair, a small MultiQC HTML with LZString-compressed data, an md5sum file. |
+| Adapters | One fixture per format generated by `tests/fixtures/make_fixtures.R` (seeded, < 200 KB each): STAR 2- and 4-column with `N_*` rows, StringTie with a duplicated gene ID, Excel with several sheets, a sheet name containing `>` and `<dimension ref="A1"/>`, signed FoldChange, a NOISeq table, an md5sum file; [I] a bedGraph pair and a small MultiQC HTML with LZString-compressed data. |
 | Canonical objects | Validators reject each malformed variant with an informative error naming the object and column. |
 | Modules | Unit tests per function on synthetic data with known answers (e.g. NNLS on an exactly solvable mixture, Hart's formula against a hand-computed value, concordance on constructed vectors). |
 | Guardrails | `assert_df()` errors at df = 0 and warns at df = 1; a module requesting p-values on a 1-vs-1 contrast fails with the documented message. |
 | Capabilities | Resolution on the three scenarios: incompatible modules are skipped with the expected reason. |
-| Integration | `snakemake` on fixtures: (a) STAR + StringTie + bedGraph + MultiQC; (b) raw and normalised counts from Excel; (c) DE tables only (DESeq2 and NOISeq). Two runs give identical md5 for every output except `run_timestamps.json`. |
+| Integration | `snakemake` on fixtures: (a) STAR + StringTie; (b) raw and normalised counts from Excel; (c) DE tables only (DESeq2 and NOISeq). Two runs give identical md5 for every output except `run_timestamps.json`. |
 | Equivalence | Outside this repository: a project instance compares its outputs with the reference tables of the analysis being replaced, column by column (relative tolerance 1e-8, absolute 1e-12 near 0). |
-| Repository hygiene | `lintr`, `styler`, `R CMD check` (0 errors, 0 warnings), `snakemake --lint`, `ruff`, `pytest`, and a data guard: no absolute paths, no file > 500 KB, no data extensions outside `tests/fixtures/`. |
+| Registry | `expect_registry_outputs()`: every table and figure a module returns is declared in `inst/modules.yaml`. |
+| Repository hygiene | `lintr`, `styler`, `R CMD check` (0 errors, 0 warnings), `ruff`, `pytest`, and a data guard: no absolute paths, no file > 500 KB, no data extensions outside `tests/fixtures/`. |
 
-Coverage target: ≥ 80% for adapters and statistical modules (`covr`).
+[I] Coverage target: ≥ 80% for adapters and statistical modules (`covr`, not yet measured).
 
 ## 10. Out of scope, and why
 
 - **FASTQ processing, alignment and quantification** (including FASTQ checksums): the toolkit starts from provider
-  outputs. `docs/FASTQ_BOUNDARY.md` specifies the files an upstream step must deliver. Light FASTQ metrics
+  outputs ([I] `docs/FASTQ_BOUNDARY.md`: the files an upstream step must deliver). Light FASTQ metrics
   computed elsewhere can be imported as a QC table.
 - **Project narrative steps** (checking numbers quoted in a report, bibliography retrieval, process audits,
   parsing a provider's PDF, decision rules written for one study): they encode one project's narrative,

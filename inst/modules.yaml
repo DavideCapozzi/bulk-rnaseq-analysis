@@ -4,7 +4,7 @@
 #
 # Fields
 #   number           fixed output folder prefix (NN_<name>); never reused
-#   function         exported R function: function(objects, params, resources) -> list(tables, figures, meta)
+#   function         exported R function: function(inputs, params, context) -> list(tables, figures, meta)
 #   requires         all of these data levels must be available
 #   requires_any     at least one of these levels must be available (optional field)
 #   optional         used when available, never required
@@ -12,8 +12,9 @@
 #   conditions       extra checks evaluated by resolve_capabilities() (see R/capabilities.R)
 #   provides         data levels this module adds for downstream modules
 #   params           config key under modules.<name> (defaults live in config/schema.yaml)
-#   outputs          tables written under NN_<name>/tables/ (figures listed separately)
-#   caveats          statistical notes copied to docs/MODULES.md and to each table's .meta.json
+#   outputs          tables the module may write under NN_<name>/tables/ (a test checks implemented modules)
+#   figures          figures under NN_<name>/figures/; a name may be followed by _<suffix> (e.g. one per contrast)
+#   caveats          statistical notes for the module documentation
 
 levels: [counts, abundance, normalized, contrast_stats, ranked, coverage, qc]
 
@@ -125,8 +126,7 @@ modules:
     conditions: [{contrasts_defined: true}]
     provides: [contrast_stats, ranked]
     params: modules.contrasts
-    outputs: [contrast_stats, contrast_spread, key_genes, normalization_factors, reference_neutrality,
-              thinning_replicates]
+    outputs: [contrast_stats, contrast_spread, normalization_factors]
     figures: []
     caveats:
       - "Log-CPM differences are descriptive estimators; no p-values are produced (assert_df not involved)."
@@ -155,12 +155,11 @@ modules:
     conditions: [{min_contrasts: 2}, {contrast_pairs_defined: true}]
     provides: []
     params: modules.concordance
-    outputs: [concordance_summary, concordant_genes, concordance_by_stratum, universe_grid,
-              power_simulation, power_simulation_summary]
-    figures: [concordance_scatter, concordance_by_stratum, power_simulation]
+    outputs: [concordance_summary]
+    figures: [concordance_scatter]
     caveats:
       - "Sign concordance between two contrasts measures shared effects; its power depends on the expression stratum."
-      - "Power simulation resamples genes (binomial thinning), not biological units."
+      - "Contrasts that share samples (shared_samples > 0) share their noise, which inflates concordance."
 
   geneset_test:
     number: 12
@@ -185,7 +184,7 @@ modules:
     provides: []
     params: modules.ora
     outputs: [ora_input_genes, ora_go_bp, ora_go_cc, ora_go_mf, ora_kegg, ora_reactome]
-    figures: [ora_dotplots]
+    figures: [ora_go_bp, ora_go_cc, ora_go_mf, ora_kegg, ora_reactome]
     caveats:
       - "Hypergeometric p-values treat genes as independent units; the universe is the set of tested genes."
 
@@ -234,7 +233,7 @@ modules:
     function: run_power
     requires: [counts]
     resources: []
-    conditions: [{design_df_min: 1, scope: bcv}]
+    conditions: [{design_df_min: 1}]
     provides: []
     params: modules.power
     outputs: [bcv, sample_size_grid]

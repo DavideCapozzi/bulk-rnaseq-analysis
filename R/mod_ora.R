@@ -65,12 +65,13 @@ run_ora <- function(inputs, params, context) {
   ct <- inputs$contrast_stats
   ct <- ct[ct$significance_metric != "none", , drop = FALSE]
   if (nrow(ct) == 0) abort("ora module: no contrast with a significance metric")
+  params <- with_defaults(params, c("modules", "ora"))
   cfg <- context$cfg
-  thresholds <- cfg$thresholds %||% list(padj = 0.05, abs_fold_change = 1.5, posterior_prob = 0.8)
-  id_type <- cfg$annotation$id_type %||% "ensembl_gene_id"
-  dbs <- unlist(params$databases %||% c("GO_BP", "GO_CC", "GO_MF", "KEGG", "Reactome"))
-  cutoff <- params$pvalue_cutoff %||% 0.05
-  adj <- params$p_adjust_method %||% "BH"
+  thresholds <- with_defaults(cfg$thresholds, "thresholds")
+  id_type <- with_defaults(cfg$annotation, "annotation")$id_type
+  dbs <- unlist(params$databases)
+  cutoff <- params$pvalue_cutoff
+  adj <- params$p_adjust_method
   org <- organism_info(context$organism)
   orgdb <- load_orgdb(context$organism)
   kegg <- NULL
@@ -99,7 +100,8 @@ run_ora <- function(inputs, params, context) {
       if (!is.null(res) && nrow(res) > 0) {
         res <- data.frame(
           contrast_id = x$contrast_id[[1]], method = x$method[[1]], direction = "up_and_down",
-          database = db, res, inference_scope = "conditional_on_contrast", stringsAsFactors = FALSE
+          database = db, res, inference_scope = "conditional_on_contrast",
+          exploratory = contrast_exploratory(x), stringsAsFactors = FALSE
         )
         results[[db]] <- rbind(results[[db]], res)
       }
@@ -112,7 +114,7 @@ run_ora <- function(inputs, params, context) {
   for (db in dbs) {
     nm <- paste0("ora_", tolower(db))
     tables[[nm]] <- results[[db]] %||% empty_ora_table()
-    if (nrow(tables[[nm]]) > 0) figs[[nm]] <- plot_ora_dots(tables[[nm]], params$show_category %||% 15)
+    if (nrow(tables[[nm]]) > 0) figs[[nm]] <- plot_ora_dots(tables[[nm]], params$show_category)
   }
   meta <- list(ora_input_genes = list(
     description = "Genes tested by ORA, with Entrez mapping and UP/DOWN/NS class.",
@@ -176,7 +178,7 @@ empty_ora_table <- function() {
     contrast_id = character(), method = character(), direction = character(), database = character(),
     term_id = character(), description = character(), gene_ratio = character(), bg_ratio = character(),
     pvalue = numeric(), padj = numeric(), qvalue = numeric(), count = integer(), gene_symbols = character(),
-    inference_scope = character(), stringsAsFactors = FALSE
+    inference_scope = character(), exploratory = logical(), stringsAsFactors = FALSE
   )
 }
 

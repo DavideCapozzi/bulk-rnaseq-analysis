@@ -30,8 +30,9 @@ write_module_outputs(
 Character vector of written files, invisibly.
 }
 \description{
-Writes every table (with meta), every figure, and optionally the module's Excel workbook. An
-\code{inference_scope} column of a table is copied into the workbook's \code{Info} sheet.
+Writes every table (with meta), every figure, and optionally the module's Excel workbook. A table with a
+p-value column (\code{pvalue}, \code{padj}, \code{p.adjust}, \code{qvalue}) must have an \code{inference_scope} column, which is also
+copied into the workbook's \code{Info} sheet.
 }
 \examples{
 res <- list(tables = list(t1 = data.frame(a = 1)), figures = list(), meta = list())

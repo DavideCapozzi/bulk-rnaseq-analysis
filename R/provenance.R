@@ -3,20 +3,19 @@
 #' Records what is needed to reproduce a run: md5 of the resolved config, toolkit identity (version pinned by
 #' the config, git commit, dirty flag, code md5, development mode), versions of R and of the packages used, md5
 #' of every input file, resources, and every module's status with its reason. The toolkit identity is the one
-#' the workflow checked before the run (`00_provenance/toolkit.json`); without it, the git state of `repo` is
-#' read now. Wall-clock times go to a separate `run_timestamps.json`, so the manifest is identical across runs
+#' the workflow checked before the run (`00_provenance/toolkit.json`; recorded as unknown when absent).
+#' Wall-clock times go to a separate `run_timestamps.json`, so the manifest is identical across runs
 #' of the same inputs.
 #'
 #' @param cfg Config from [read_config()].
 #' @param out `character(1)`. Project output folder.
-#' @param repo `character(1)` or `NULL`. Toolkit repository, read only when `toolkit.json` is missing.
 #' @return Path of `run_manifest.json`, invisibly.
 #' @examples
 #' \donttest{
 #' # called by the workflow after all modules
 #' }
 #' @export
-write_run_manifest <- function(cfg, out, repo = NULL) {
+write_run_manifest <- function(cfg, out) {
   dir <- file.path(out, "00_provenance")
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   resolved <- file.path(dir, "config_resolved.yaml")
@@ -28,8 +27,6 @@ write_run_manifest <- function(cfg, out, repo = NULL) {
   toolkit_json <- file.path(dir, "toolkit.json")
   toolkit <- if (file.exists(toolkit_json)) {
     jsonlite::fromJSON(toolkit_json)
-  } else if (!is.null(repo)) {
-    git_state(repo)
   } else {
     list(git_commit = NA_character_, git_dirty = NA)
   }
@@ -42,7 +39,8 @@ write_run_manifest <- function(cfg, out, repo = NULL) {
     r_version = R.version.string,
     packages = as.list(versions[!is.na(versions)]),
     seed = cfg$project$seed,
-    inputs = if (file.exists(inputs)) as.data.frame(data.table::fread(inputs, sep = "\t")) else list(),
+    # read.delim undoes the CSV-style quoting of the JSON in `params` (fread with sep = "\t" keeps it doubled).
+    inputs = if (file.exists(inputs)) utils::read.delim(inputs, colClasses = "character") else list(),
     modules = caps[, c("module", "number", "dir", "status", "reason")]
   )
   path <- file.path(dir, "run_manifest.json")
@@ -59,16 +57,6 @@ desc_packages <- function(field) {
   }
   p <- trimws(sub("\\(.*\\)", "", strsplit(d, ",")[[1]]))
   setdiff(p[nzchar(p)], c("R", "methods", "stats", "tools", "utils"))
-}
-
-git_state <- function(repo) {
-  commit <- tryCatch(system2("git", c("-C", shQuote(repo), "rev-parse", "HEAD"), stdout = TRUE, stderr = FALSE),
-    error = function(e) NA_character_, warning = function(w) NA_character_
-  )
-  status <- tryCatch(system2("git", c("-C", shQuote(repo), "status", "--porcelain"), stdout = TRUE, stderr = FALSE),
-    error = function(e) character(), warning = function(w) character()
-  )
-  list(git_commit = if (length(commit)) commit[[1]] else NA_character_, git_dirty = length(status) > 0)
 }
 
 #' Write the run summary

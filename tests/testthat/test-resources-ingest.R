@@ -24,8 +24,8 @@ test_that("ingest of the DE-only scenario produces canonical contrast tables wit
       inputs = list(
         base_dir = normalizePath(fixture("scenario_c")),
         contrast_tables = list(
-          list(id = "c1", adapter = "deseq2", file = "comparison.xlsx", sheet = "DESeq2_results"),
-          list(id = "n1", adapter = "noiseq", file = "noiseq_results.tsv")
+          list(id = "c1", adapter = "deseq2", file = "comparison.xlsx", sheet = "DESeq2_results", df_residual = 4),
+          list(id = "n1", adapter = "noiseq", file = "noiseq_results.tsv", df_residual = 0)
         )
       ),
       annotation = list(id_type = "gene_symbol"),

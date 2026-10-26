@@ -25,16 +25,11 @@ run_ingest <- function(cfg) {
   report <- list()
   prov <- list()
   qc <- NULL
-  per_sample_files <- function(pattern, level) {
-    ss <- samples_with_level(samples, level)
-    paths <- vapply(ss$input_column, function(i) input_path(cfg, gsub("{input}", i, pattern, fixed = TRUE)), "")
-    stats::setNames(paths, ss$input_column)
-  }
   counts <- tpm <- fpkm <- normalized <- abundance_features <- NULL
   if (!is.null(inp$counts)) {
     if (inp$counts$adapter == "star_reads_per_gene") {
       r <- read_star_counts(
-        per_sample_files(inp$counts$files, "counts"), inp$counts$strand_column %||% "single",
+        per_sample_files(cfg, samples, inp$counts$files, "counts"), inp$counts$strand_column %||% "single",
         inp$counts$on_duplicate %||% "error"
       )
       qc <- rbind(qc, map_qc_samples(r$qc, samples))
@@ -50,7 +45,9 @@ run_ingest <- function(cfg) {
   }
   if (!is.null(inp$abundance)) {
     if (inp$abundance$adapter == "stringtie_gene_abundance") {
-      r <- read_stringtie(per_sample_files(inp$abundance$files, "abundance"), inp$abundance$on_duplicate %||% "error")
+      r <- read_stringtie(
+        per_sample_files(cfg, samples, inp$abundance$files, "abundance"), inp$abundance$on_duplicate %||% "error"
+      )
       tpm <- r$tpm
       fpkm <- r$fpkm
       abundance_features <- r$features
@@ -110,6 +107,28 @@ run_ingest <- function(cfg) {
     se = se, contrast_stats = ct, qc = qc, samples = samples, report = report, provenance = provenance,
     resources = res_paths, annotation = annotation, normalization_check = norm_check
   )
+}
+
+# One file per sample with the given data level: `pattern` with {input} replaced by its input_column.
+per_sample_files <- function(cfg, samples, pattern, level) {
+  ss <- samples_with_level(samples, level)
+  paths <- vapply(ss$input_column, function(i) input_path(cfg, gsub("{input}", i, pattern, fixed = TRUE)), "")
+  stats::setNames(paths, ss$input_column)
+}
+
+# Every input file the config points to, so that a missing one is reported before the run starts.
+configured_input_files <- function(cfg, samples) {
+  inp <- cfg$inputs %||% list()
+  files <- character()
+  for (lv in c("counts", "abundance")) {
+    x <- inp[[lv]]
+    # [[ ]]: `x$file` would partially match `files`.
+    if (!is.null(x[["files"]])) files <- c(files, per_sample_files(cfg, samples, x[["files"]], lv))
+    if (!is.null(x[["file"]])) files <- c(files, input_path(cfg, x[["file"]]))
+  }
+  if (!is.null(inp$normalized)) files <- c(files, input_path(cfg, inp$normalized$file))
+  for (t in inp$contrast_tables %||% list()) files <- c(files, input_path(cfg, t$file))
+  unname(files)
 }
 
 map_qc_samples <- function(qc, samples) {

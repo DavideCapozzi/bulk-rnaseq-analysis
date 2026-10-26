@@ -10,6 +10,10 @@ test_that("the run manifest records the toolkit identity checked by the workflow
   )
   jsonlite::write_json(toolkit, file.path(prov, "toolkit.json"), auto_unbox = TRUE)
   cfg <- structure(list(project = list(name = "demo", seed = 1), resources = list(cache_dir = out)), config_dir = out)
-  m <- jsonlite::fromJSON(write_run_manifest(cfg, out, repo = "/nonexistent"))
+  prov_in <- data.frame(file = "a.txt", md5 = strrep("c", 32), adapter = "x", params = '{"k":"v"}')
+  write_table(prov_in, file.path(out, "01_ingest"), "input_files")
+  m <- jsonlite::fromJSON(write_run_manifest(cfg, out))
   expect_equal(m$toolkit, toolkit)
+  # The JSON of the adapter parameters survives the TSV round trip unchanged.
+  expect_equal(m$inputs$params, '{"k":"v"}')
 })

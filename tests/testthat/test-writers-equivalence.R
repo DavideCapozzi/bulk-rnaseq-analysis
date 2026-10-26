@@ -35,3 +35,10 @@ test_that("compare_tables distinguishes identical, tolerance, explained rounding
   expect_equal(compare_tables(a, transform(a, s = c("p", "z")), "id")$mismatched_columns, "s")
   expect_equal(compare_tables(a, a[1, ], "id")$status, "different")
 })
+
+test_that("a table with p-values cannot be written without its inference scope", {
+  res <- list(tables = list(t = data.frame(feature_id = "g", pvalue = 0.01)), figures = list(), meta = list())
+  expect_error(write_module_outputs(res, tempfile()), "table 't': p-value column\\(s\\) pvalue without inference_scope")
+  res$tables$t$inference_scope <- "sample"
+  expect_silent(write_module_outputs(res, tempfile()))
+})

@@ -25,6 +25,8 @@ test_that("DE-only input runs volcano and ORA, skips sample-level modules with t
     "concordance skipped: needs >= 2 contrasts with per-gene statistics; input provides 1 \\(comparison.xlsx\\)"
   )
   expect_match(caps$reason[caps$module == "qc"], "needs one of counts, qc")
+  # A module not ported yet says so first, whatever else it would need.
+  expect_match(caps$reason[caps$module == "markers"], "^markers skipped: not implemented in bulkrnaseq")
   expect_equal(caps$depends_on[caps$module == "volcano"], "ingest")
 })
 
@@ -48,4 +50,15 @@ test_that("descriptive contrasts do not enable significance-based modules; disab
   expect_match(caps$reason[caps$module == "volcano"], "descriptive only")
   expect_equal(caps$status[caps$module == "markers"], "disabled")
   expect_match(caps$depends_on[caps$module == "concordance"] %||% "", "")
+})
+
+test_that("a missing input file stops the run before any analysis, naming the file", {
+  dir <- withr::local_tempdir()
+  writeLines(c("sample_id\tinput_column", "a\tA", "b\tB"), file.path(dir, "samples.tsv"))
+  file.create(file.path(dir, "A_counts.tab"))
+  cfg <- make_cfg(list(
+    project = list(name = "x", output_dir = "o"), samples = list(sheet = "samples.tsv"),
+    inputs = list(base_dir = ".", counts = list(adapter = "star_reads_per_gene", files = "{input}_counts.tab"))
+  ), dir = dir)
+  expect_error(write_capabilities(cfg, file.path(dir, "o")), "1 input file\\(s\\) not found.*B_counts\\.tab")
 })

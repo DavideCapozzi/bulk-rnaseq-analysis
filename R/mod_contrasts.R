@@ -96,7 +96,7 @@ estimate_lfc <- function(se, contrasts, rows = NULL, prior_count = 2,
 #' @inheritParams estimate_lfc
 #' @param design `formula`. Additive design used for size factors and dispersions, e.g. `~ batch + condition`.
 #' @return Canonical contrast table with method `"deseq2_apeglm"`, `lfc_se` and `base_mean`; `df_residual` is the
-#'   residual df of `design`, and attribute `exploratory` is `TRUE` when it equals 1.
+#'   residual df of `design`, and extension column and attribute `exploratory` are `TRUE` when it equals 1.
 #' @examples
 #' \donttest{
 #' if (requireNamespace("apeglm", quietly = TRUE)) {
@@ -155,7 +155,8 @@ estimate_lfc_apeglm <- function(se, contrasts, design, rows = NULL) {
     new_contrast_table(contrasts[[k]]$id, rownames(counts), res$log2FoldChange,
       gene_symbol = symbols,
       lfc_se = res$lfcSE, base_mean = res$baseMean, significance_metric = "none",
-      method = "deseq2_apeglm", df_residual = guard$df, source = "computed"
+      method = "deseq2_apeglm", df_residual = guard$df, source = "computed",
+      extra = data.frame(exploratory = rep(guard$exploratory, nrow(counts)))
     )
   })
   ct <- do.call(rbind, out)
@@ -248,29 +249,23 @@ contrast_spread <- function(ct, genes, subsets = "all", threshold = 1, organism 
 #' names(res$tables)
 #' @export
 run_contrasts <- function(inputs, params, context) {
+  params <- with_defaults(params, c("modules", "contrasts"))
   cfg <- context$cfg
   se <- inputs$se
-  gf <- cfg$gene_filter %||% list()
-  keep <- filter_genes(se,
-    biotypes = gf$biotypes %||% c("protein_coding", "lncRNA"),
-    exclude_mitochondrial = gf$exclude_mitochondrial %||% TRUE, min_cpm = gf$min_cpm %||% 2,
-    min_samples = gf$min_samples %||% 2, sex_genes = gf$sex_genes %||% "drop_xist_y",
-    organism = context$organism,
-    x_inactivation_genes = resolve_gene_list("x_inactivation", context$gene_lists)
-  )
+  gf <- with_defaults(cfg$gene_filter, "gene_filter")
+  keep <- config_filter_genes(se, cfg, context)
   contrasts <- cfg$contrasts
   if (length(contrasts) == 0) abort("contrasts module: no contrasts defined in the config")
-  estimators <- unlist(params$estimators %||% "logcpm_difference")
+  estimators <- unlist(params$estimators)
   pieces <- list()
   nf_rows <- list()
   if ("logcpm_difference" %in% estimators) {
     ct_a <- estimate_lfc(se, contrasts,
-      rows = keep, prior_count = params$prior_count %||% 2,
-      norm_method = params$norm_method %||% "TMM",
+      rows = keep, prior_count = params$prior_count, norm_method = params$norm_method,
       reference_genes = resolve_gene_list(params$reference_genes, context$gene_lists)
     )
     nf_rows[[1]] <- data.frame(
-      norm_variant = params$norm_method %||% "TMM", sample_id = colnames(se),
+      norm_variant = params$norm_method, sample_id = colnames(se),
       norm_factor = attr(ct_a, "norm_factors")
     )
     pieces$logcpm_difference <- ct_a
@@ -294,7 +289,7 @@ run_contrasts <- function(inputs, params, context) {
     inputs$gene_flags
   )
   spread <- contrast_spread(
-    ct, genes, unlist(params$spread_subsets %||% "all"), params$spread_threshold %||% 1,
+    ct, genes, unlist(params$spread_subsets), params$spread_threshold,
     context$organism
   )
   list(
@@ -304,10 +299,8 @@ run_contrasts <- function(inputs, params, context) {
       contrast_stats = list(
         description = "Fold-change estimates per contrast and estimator (descriptive: no p-values).",
         units = list(
-          lfc = "log2_ratio", ave_log2cpm = paste0(
-            "log2_cpm_", tolower(params$norm_method %||% "TMM"),
-            "_prior", params$prior_count %||% 2
-          ),
+          lfc = "log2_ratio",
+          ave_log2cpm = paste0("log2_cpm_", tolower(params$norm_method), "_prior", params$prior_count),
           base_mean = "normalized_counts"
         ),
         filters = list(gene_filter = gf, n_genes = sum(keep)), exploratory = exploratory

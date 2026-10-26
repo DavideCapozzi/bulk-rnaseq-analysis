@@ -144,8 +144,9 @@ normalise_zip <- function(src, dest, fixed_time = "2000-01-01T00:00:00Z") {
 
 #' Write a module's outputs
 #'
-#' Writes every table (with meta), every figure, and optionally the module's Excel workbook. An
-#' `inference_scope` column of a table is copied into the workbook's `Info` sheet.
+#' Writes every table (with meta), every figure, and optionally the module's Excel workbook. A table with a
+#' p-value column (`pvalue`, `padj`, `p.adjust`, `qvalue`) must have an `inference_scope` column, which is also
+#' copied into the workbook's `Info` sheet.
 #'
 #' @param result `list(tables, figures, meta)` returned by a module.
 #' @param dir `character(1)`. Module folder (`NN_<module>`).
@@ -160,6 +161,12 @@ normalise_zip <- function(src, dest, fixed_time = "2000-01-01T00:00:00Z") {
 #' @export
 write_module_outputs <- function(result, dir, params = list(), xlsx_path = NULL, gzip_tables = character(),
                                  figure_sizes = list()) {
+  for (nm in names(result$tables)) {
+    p_cols <- intersect(c("pvalue", "padj", "p.adjust", "qvalue"), names(result$tables[[nm]]))
+    if (length(p_cols) > 0 && !"inference_scope" %in% names(result$tables[[nm]])) {
+      abort("table '", nm, "': p-value column(s) ", paste(p_cols, collapse = ", "), " without inference_scope")
+    }
+  }
   written <- character()
   for (nm in names(result$tables)) {
     written <- c(written, write_table(result$tables[[nm]], file.path(dir, "tables"), nm, result$meta[[nm]] %||% list(),

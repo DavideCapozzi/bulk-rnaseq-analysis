@@ -1,6 +1,7 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-# Draft (phase 2). Validated by snakemake.utils.validate (defaults are filled in) and by
-# bulkrnaseq::validate_config(). docs/CONFIG.md is generated from this file.
+# Validated by snakemake.utils.validate (defaults are filled in); bulkrnaseq::read_config() fills the same defaults
+# and validate_config() checks the cross-field rules. The only place where defaults live (see with_defaults()).
+# Sections of modules that are implemented are strict (additionalProperties: false).
 description: Project configuration for the bulkrnaseq toolkit.
 type: object
 additionalProperties: false
@@ -260,6 +261,7 @@ properties:
     default: []
     items:
       type: object
+      additionalProperties: false
       required: [id, first, second]
       properties:
         id: {type: string}
@@ -273,12 +275,13 @@ properties:
     default: []
     items:
       type: object
+      additionalProperties: false
       required: [id, formula]
       properties:
         id: {type: string}
         formula: {type: string, description: e.g. "~ patient + condition"}
         contrast: {type: array, items: {type: string}, minItems: 3, maxItems: 3}
-        engine: {type: string, enum: [deseq2, edger], default: deseq2}
+        engine: {type: string, enum: [deseq2], default: deseq2}
 
   thresholds:
     type: object
@@ -297,6 +300,7 @@ properties:
       qc:
         type: object
         default: {}
+        additionalProperties: false
         properties:
           enabled: {type: boolean, default: true}
           top_n_share: {type: integer, default: 50}
@@ -313,6 +317,7 @@ properties:
       pca:
         type: object
         default: {}
+        additionalProperties: false
         properties:
           enabled: {type: boolean, default: true}
           transforms: {type: array, items: {type: string, enum: [vst, logcpm_tmm]}, default: [vst, logcpm_tmm]}
@@ -338,6 +343,7 @@ properties:
           orient_pc1:
             type: [object, "null"]
             default: null
+            additionalProperties: false
             description: Orients PC1 so that samples at this level have positive mean score (drivers, pc1_order).
             required: [factor, level]
             properties:
@@ -414,26 +420,26 @@ properties:
       contrasts:
         type: object
         default: {}
+        additionalProperties: false
         properties:
           enabled: {type: boolean, default: true}
           estimators: {type: array, items: {type: string, enum: [logcpm_difference, deseq2_apeglm]}, default: [logcpm_difference]}
           prior_count: {type: number, default: 2}
           norm_method: {type: string, enum: [TMM, RLE, upperquartile, none, reference], default: TMM}
           reference_genes: {oneOf: [{type: "null"}, {$ref: "#/$defs/gene_list_ref"}], default: null}
-          norm_variants: {type: array, items: {type: string}, default: []}
-          prior_variants: {type: array, items: {type: number}, default: []}
           dispersion_design: {type: [string, "null"], default: null}
-          thinning: {type: object, default: {}, properties: {replicates: {type: integer, default: 0}, seed: {$ref: "#/$defs/seed"}}}
-          key_genes: {$ref: "#/$defs/gene_list_ref", default: []}
+          spread_subsets: {type: array, items: {type: string}, default: [all], description: Gene subsets of contrast_spread.}
           spread_threshold: {type: number, default: 1}
       de_test:
         type: object
         default: {}
+        additionalProperties: false
         properties:
           enabled: {type: boolean, default: true}
           prefilter:
             type: object
             default: {min_count: 10, min_samples: 3}
+            additionalProperties: false
             description: Genes with at least min_count reads in at least min_samples samples are tested.
             properties:
               min_count: {type: integer, minimum: 0}
@@ -456,23 +462,11 @@ properties:
       concordance:
         type: object
         default: {}
+        additionalProperties: false
         properties:
           enabled: {type: boolean, default: true}
           thresholds: {$ref: "#/$defs/threshold_list", default: [0.58, 1]}
           subsets: {type: array, items: {type: string}, default: [all]}
-          strata: {type: array, items: {type: string}, default: [all, ge_median]}
-          deciles: {type: boolean, default: false}
-          concordant_gene_lists: {type: object, default: {}}
-          power_simulation:
-            type: object
-            default: {enabled: false}
-            properties:
-              enabled: {type: boolean, default: false}
-              deltas: {type: array, items: {type: number}, default: [0.5, 1, 2]}
-              fractions: {type: array, items: {type: number}, default: [0.05, 0.1, 0.2]}
-              shared_fractions: {type: array, items: {type: number}, default: [1]}
-              replicates: {type: integer, default: 20}
-              seed: {$ref: "#/$defs/seed"}
       geneset_test:
         type: object
         default: {}
@@ -490,6 +484,7 @@ properties:
       ora:
         type: object
         default: {}
+        additionalProperties: false
         properties:
           enabled: {type: boolean, default: true}
           databases: {type: array, items: {type: string, enum: [GO_BP, GO_CC, GO_MF, KEGG, Reactome]}, default: [GO_BP, GO_CC, GO_MF, KEGG, Reactome]}
@@ -499,6 +494,7 @@ properties:
       volcano:
         type: object
         default: {}
+        additionalProperties: false
         properties:
           enabled: {type: boolean, default: true}
           label_top: {type: integer, default: 15}

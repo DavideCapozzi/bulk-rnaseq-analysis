@@ -20,3 +20,5 @@
 ^tests/python$
 ^bin$
 ^\.pytest_cache$
+^CLAUDE\.md$
+^\.claude$

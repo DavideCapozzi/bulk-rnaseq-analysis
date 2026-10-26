@@ -83,8 +83,9 @@ deref_schema <- function(s, root) {
 
 #' Check cross-field rules of a config
 #'
-#' Rules that JSON Schema cannot express: sample-level inputs need a sample sheet; contrast, pair and design
-#' identifiers are unique; contrast pairs refer to defined contrasts.
+#' Rules that JSON Schema cannot express: sample-level inputs need a sample sheet; inputs whose adapter is not
+#' implemented yet are refused instead of being ignored; contrast, pair and design identifiers are unique;
+#' contrast pairs refer to defined contrasts.
 #'
 #' @param cfg `list`. Parsed config with defaults.
 #' @return `TRUE` invisibly; otherwise an error naming the field.
@@ -98,6 +99,23 @@ validate_config <- function(cfg) {
       "config: inputs ", paste(intersect(sample_level, names(cfg$inputs)), collapse = ", "),
       " need samples.sheet (sample metadata come only from the sample sheet)"
     )
+  }
+  pending <- intersect(c("qc", "coverage", "checksums"), names(cfg$inputs))
+  if (length(pending) > 0) {
+    abort(
+      "config: inputs.", paste(pending, collapse = ", inputs."), " not implemented in bulkrnaseq ",
+      utils::packageVersion("bulkrnaseq"), "; remove it from the config (it would be ignored)"
+    )
+  }
+  for (t in cfg$inputs$contrast_tables %||% list()) {
+    has_metric <- t$adapter %in% c("deseq2", "noiseq") || !is.null(t$columns$padj) || !is.null(t$columns$posterior_prob)
+    if (has_metric && is.null(t$df_residual)) {
+      abort(
+        "config: inputs.contrast_tables '", t$id, "' needs df_residual, the residual degrees of freedom of the ",
+        "provider's model (n samples - rank of the design; 0 without replicates): it decides whether its ",
+        "p-values are sample-level"
+      )
+    }
   }
   check_unique <- function(ids, what) {
     dup <- unique(ids[duplicated(ids)])
@@ -130,3 +148,14 @@ input_path <- function(cfg, path) {
 output_dir <- function(cfg) config_path(cfg, cfg$project$output_dir)
 
 module_params <- function(cfg, module) cfg$modules[[module]] %||% list()
+
+# One config section with the schema defaults filled in, e.g. with_defaults(params, c("modules", "pca")) or
+# with_defaults(cfg$thresholds, "thresholds"). The schema is the only place where defaults live: inside the
+# workflow the config is already complete, and module functions called directly get the same values.
+with_defaults <- function(x, section) {
+  root <- yaml::read_yaml(config_schema_path())
+  sub <- root
+  for (key in section) sub <- deref_schema(sub$properties[[key]], root)
+  if (is.null(sub)) abort("with_defaults(): no schema section ", paste(section, collapse = "."))
+  apply_schema_defaults(x %||% list(), sub, root)
+}

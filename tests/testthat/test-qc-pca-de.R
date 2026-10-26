@@ -51,6 +51,7 @@ test_that("qc module runs on imported QC alone and fails when nothing is availab
   qc <- data.frame(sample_id = c("s1", "s2"), metric = "n_unmapped", value = c(3, 4), source = "star_counts")
   res <- run_qc(list(qc = qc), list(), list(cfg = list(), gene_lists = list(), organism = "human"))
   expect_equal(names(res$tables), "qc_summary")
+  expect_registry_outputs(res, "qc")
   expect_length(res$figures, 0)
   expect_error(run_qc(list(), list(), list(cfg = list())), "no QC metrics available")
 })
@@ -97,8 +98,12 @@ test_that("pca module runs the variant grid, orients PC1 and reproduces seeded t
   expect_equal(sort(unique(res$tables$sample_correlations$method)), c("pearson", "spearman"))
   expect_equal(nrow(res$tables$sample_distances), 16)
   expect_s3_class(res$figures$pca, "ggplot")
+  expect_registry_outputs(res, "pca")
   again <- run_pca(list(se = se), params, ctx)
   expect_identical(again$tables$pca_summary, s)
+  # The schema default (an empty list, as in a resolved config) also means every factor of samples.factors.
+  resolved <- run_pca(list(se = se), c(params, list(separation_factors = list())), ctx)
+  expect_identical(resolved$tables$pca_summary, s)
   other_seed <- run_pca(list(se = se), params, modifyList(ctx, list(seed = 8)))
   thinned <- s$data == "thinned"
   expect_false(identical(other_seed$tables$pca_summary$pc1_var[thinned], s$pc1_var[thinned]))
@@ -110,6 +115,7 @@ test_that("deseq2_wald guards residual degrees of freedom and labels sample-leve
   ct <- deseq2_wald(se, d, min_count = 5, min_samples = 3)
   expect_true(all(ct$inference_scope == "sample"))
   expect_equal(unique(ct$df_residual), 4L)
+  expect_false(any(ct$exploratory))
   expect_false(attr(ct, "exploratory"))
   expect_gt(stats::median(ct$lfc[ct$feature_id <= "g0100"]), 1)
   one_each <- se[, c(1, 4)]
@@ -131,6 +137,7 @@ test_that("de_test compares computed and imported contrasts and rejects unknown 
   expect_equal(pc$n_same_class, nrow(imported))
   expect_equal(pc$lfc_max_abs_diff, 0)
   expect_equal(res$tables$design_summary$df_residual, 4L)
+  expect_registry_outputs(res, "de_test")
   params$compare_with[[1]]$contrast_table <- "absent"
   expect_error(run_de_test(list(se = se, contrast_stats = imported), params, list(cfg = cfg)), "'absent' not found")
   cfg$designs[[1]]$engine <- "edger"

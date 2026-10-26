@@ -1,12 +1,9 @@
-test_that("GTF genes and exons are read by streaming", {
+test_that("GTF genes are read by streaming", {
   g <- read_gtf_genes(fixture("resources", "annotation.gtf.gz"))
   expect_named(g, c("ensembl_gene_id", "gene_symbol", "biotype", "chromosome", "start", "end", "strand"))
   expect_equal(sum(is.na(g$gene_symbol)), 1)
   expect_type(g$chromosome, "character")
   expect_true(all(c("MT", "X", "Y") %in% g$chromosome))
-  e <- read_gtf_exons(fixture("resources", "annotation.gtf.gz"), gene_symbols = c("XIST", "TSIX"))
-  expect_equal(sort(unique(e$gene_symbol)), c("TSIX", "XIST"))
-  expect_equal(nrow(e), 4)
 })
 
 test_that("build_se maps input columns to sample_id and keeps provider-normalised values as NA where absent", {

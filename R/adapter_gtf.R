@@ -34,42 +34,6 @@ read_gtf_genes <- function(path) {
   x
 }
 
-#' Read exon records from a GTF file
-#'
-#' @param path `character(1)`. GTF or GTF.gz.
-#' @param gene_symbols `character` or `NULL`. Keep only exons of these gene names (`NULL` keeps all).
-#' @return `data.frame` with `ensembl_gene_id`, `gene_symbol`, `chromosome`, `start`, `end`, `strand`,
-#'   `transcript_id`, `transcript_biotype`.
-#' @examples
-#' f <- tempfile(fileext = ".gtf")
-#' writeLines(paste("1", "src", "exon", "11", "20", ".", "+", ".",
-#'   'gene_id "G1"; transcript_id "T1"; gene_name "A"; transcript_biotype "protein_coding";',
-#'   sep = "\t"
-#' ), f)
-#' read_gtf_exons(f)
-#' @export
-read_gtf_exons <- function(path, gene_symbols = NULL) {
-  assert_file(path, "GTF")
-  prog <- c(
-    paste0(
-      "BEGIN{OFS=\"\\t\"; print \"ensembl_gene_id\",\"gene_symbol\",\"chromosome\",\"start\",",
-      "\"end\",\"strand\",\"transcript_id\",\"transcript_biotype\"}"
-    ),
-    "$3==\"exon\" {",
-    "  id=\"\"; nm=\"\"; tid=\"\"; tb=\"\";",
-    "  if (match($9, /gene_id \"[^\"]+\"/))            id=substr($9, RSTART+9,  RLENGTH-10);",
-    "  if (match($9, /gene_name \"[^\"]+\"/))          nm=substr($9, RSTART+11, RLENGTH-12);",
-    "  if (match($9, /transcript_id \"[^\"]+\"/))      tid=substr($9, RSTART+15, RLENGTH-16);",
-    "  if (match($9, /transcript_biotype \"[^\"]+\"/)) tb=substr($9, RSTART+20, RLENGTH-21);",
-    "  print id, (nm==\"\"?\"NA\":nm), $1, $4, $5, $7, tid, tb }"
-  )
-  x <- stream_awk(path, prog)
-  x$chromosome <- as.character(x$chromosome)
-  if (!is.null(gene_symbols)) x <- x[x$gene_symbol %in% gene_symbols, , drop = FALSE]
-  rownames(x) <- NULL
-  x
-}
-
 # Runs an awk program over a (possibly gzipped) text file and reads the tab-separated result. awk is a
 # documented system dependency; it keeps memory use independent of the file size.
 stream_awk <- function(path, prog) {

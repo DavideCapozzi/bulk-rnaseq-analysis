@@ -13,8 +13,9 @@ validate_config(cfg)
 \code{TRUE} invisibly; otherwise an error naming the field.
 }
 \description{
-Rules that JSON Schema cannot express: sample-level inputs need a sample sheet; contrast, pair and design
-identifiers are unique; contrast pairs refer to defined contrasts.
+Rules that JSON Schema cannot express: sample-level inputs need a sample sheet; inputs whose adapter is not
+implemented yet are refused instead of being ignored; contrast, pair and design identifiers are unique;
+contrast pairs refer to defined contrasts.
 }
 \examples{
 validate_config(list(project = list(name = "x", output_dir = "o"), inputs = list()))
