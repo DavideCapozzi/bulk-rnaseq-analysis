@@ -15,9 +15,10 @@ Statistical guardrails live in the code, not in documentation:
 - every random step is seeded, and two runs give byte-identical outputs;
 - sample metadata come only from the sample sheet, never from file or column names.
 
-Status: early development (0.x). Implemented modules: `qc`, `pca`, `contrasts`, `de_test`, `concordance`, `ora`,
-`volcano`, `pairing`, `power`. The others listed in [`inst/modules.yaml`](inst/modules.yaml) are skipped with the
-reason "not implemented" until they are ported; inputs not supported yet (coverage tracks, md5sum files) are refused
+Status: early development (0.x). Implemented modules: `qc`, `pca`, `contamination`, `reference`, `contrasts`,
+`de_test`, `concordance`, `ora`, `volcano`, `pairing`, `power`. The others listed in
+[`inst/modules.yaml`](inst/modules.yaml) are skipped with the reason "not implemented" until they are ported; inputs
+not supported yet (coverage tracks, md5sum files) are refused
 rather than ignored. MultiQC HTML reports (1.x with embedded plot data) are read as QC input; decoding them needs
 `python3`. Design notes: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Changes: [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -42,7 +43,7 @@ Three example configs in [`config/examples/`](config/examples/) run on small syn
 
 | Scenario | Inputs | Modules that run |
 |---|---|---|
-| `scenario_a_star.yaml` | STAR counts and StringTie abundances | qc, pca, contrasts, de_test, concordance, volcano |
+| `scenario_a_star.yaml` | STAR counts and StringTie abundances | qc, pca, contamination, reference, contrasts, de_test, concordance, volcano, pairing, power |
 | `scenario_b_excel.yaml` | raw and normalised counts in Excel | qc, pca, de_test (unpaired and paired), volcano |
 | `scenario_c_de_only.yaml` | a DESeq2 and a NOISeq table only | ora, volcano |
 

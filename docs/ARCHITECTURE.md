@@ -39,7 +39,8 @@ samples.tsv      └──────┬─────────────
     read_de_table       resource paths         meta)                     write_module_outputs()
     read_gtf_genes                                                       write_ingest_outputs()
     read_multiqc (+ inst/python/multiqc_decode.py)                       write_run_manifest(), write_report()
-    [I] read_bedgraph_regions, check_md5sum, read_gene_sets, read_reference_profiles
+    read_gene_sets, read_reference_profiles
+    [I] read_bedgraph_regions, check_md5sum
 ```
 
 Rules:
@@ -137,6 +138,13 @@ conditions (e.g. at least two contrasts) and the levels it provides. Levels:
 | `ranked` | derived from any `contrast_stats` with a per-gene statistic (`lfc` or `stat`) |
 | `coverage` | [I] bedGraph |
 | `qc` | STAR `N_*` rows; MultiQC reports (`inputs.qc.multiqc`) |
+| `gene_mask` | module `contamination` (per-gene flags `masked`, `masked_by_sets`, `masked_by_profiles`) |
+| `gene_universe` | module `reference` (per-gene flags `target_expressed`, `contam_sensitive`, `reference_universe`) |
+
+`gene_mask` and `gene_universe` are not data but per-gene flags (`objects/gene_flags.rds` of the providing module).
+Modules that use them (`pca`, `contrasts`, `concordance`, `power`, optional) select genes with subset expressions
+of `gene_subset()`: `no_masked`, `in_reference_universe+no_masked+ge_median`, ... The universe and the mask stay
+separate flags, so every table names the combination it used in its subset column.
 
 The Snakefile resolves capabilities before building the DAG: start from the levels provided by the inputs,
 add levels provided by enabled modules whose requirements are met, repeat until stable. Modules whose
@@ -151,21 +159,21 @@ they never fail the run silently or abort it.
 | NN | Module | counts | abundance | normalized | contrast_stats | ranked | coverage | qc | Resources / conditions |
 |---|---|---|---|---|---|---|---|---|---|
 | 02 | `qc` | R¹ | o | — | — | — | — | R¹ | annotation; ¹ either level suffices |
-| 03 | `pca` | R | o | — | — | — | — | o | annotation; ≥ 3 samples |
+| 03 | `pca` | R | o | — | — | — | — | o | annotation; ≥ 3 samples; optional `gene_mask`, `gene_universe` (gene subsets) |
 | 04 | `markers` | R | o | — | — | — | — | — | annotation, marker panels |
-| 05 | `contamination` | R | — | — | — | — | — | — | annotation, contaminant profiles, gene sets (mask) |
+| 05 | `contamination` | R | — | — | — | — | — | — | annotation, gene lists (profiles), MSigDB export (`mask.resource`); provides `gene_mask` |
 | 06 | `contamination_sets` | — | — | — | — | R | — | — | contaminant profiles |
-| 07 | `reference` | R² | — | — | o | — | — | — | annotation, reference profiles; ² or any gene list from `contrast_stats` |
+| 07 | `reference` | R | — | — | — | — | — | — | annotation, HPA exports (`profiles[].resource`); optional `gene_mask`; provides `gene_universe` |
 | 08 | `deconvolution` | o³ | R³ | — | — | — | — | — | reference profiles; ³ TPM default, CPM variant |
-| 09 | `contrasts` | R | — | — | — | — | — | — | contrasts in config; provides `contrast_stats`, `ranked` |
+| 09 | `contrasts` | R | — | — | — | — | — | — | contrasts in config; provides `contrast_stats`, `ranked`; optional gene flags (`spread_subsets`) |
 | 10 | `de_test` | R | — | — | — | — | — | — | design with df ≥ 1 (`assert_df`); provides `contrast_stats` |
-| 11 | `concordance` | o | — | — | R | — | — | — | ≥ 2 contrasts and ≥ 1 contrast pair; power simulation needs `counts` |
+| 11 | `concordance` | o | — | — | R | — | — | — | ≥ 2 contrasts and ≥ 1 contrast pair; power simulation needs `counts`; optional gene flags (`subsets`) |
 | 12 | `geneset_test` | — | — | — | — | R | — | — | gene sets |
 | 13 | `ora` | — | — | — | R | — | — | — | OrgDb, GO/Reactome packages, KEGG table in cache |
 | 14 | `volcano` | — | — | — | R | — | — | — | — |
 | 15 | `signatures` | R | — | — | — | — | — | — | gene sets |
 | 16 | `pairing` | R | o | — | — | — | — | — | annotation (chromosomes), sex and fingerprint gene lists; a variant without genes is skipped and noted |
-| 17 | `power` | R | — | — | — | — | — | — | a design with df ≥ 1 (BCV and its per-gene interval); Hart grid |
+| 17 | `power` | R | — | — | — | — | — | — | a design with df ≥ 1 (BCV and its per-gene interval); Hart grid; optional gene flags (`universes`) |
 | 18 | `coverage` | — | — | — | — | — | R | — | annotation exons |
 | 19 | `covariates` | — | — | — | R | — | — | — | annotation exons, transcript FASTA |
 

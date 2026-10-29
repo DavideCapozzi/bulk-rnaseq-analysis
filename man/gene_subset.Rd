@@ -21,7 +21,8 @@ gene_subset(genes, subset, organism = "human")
 Subsets are written as tokens joined by \code{+}, all of which must hold:
 \code{all}; \verb{no_<flag>} (exclude genes where logical column \verb{<flag>} is \code{TRUE}); \verb{in_<flag>} (keep genes where it is
 \code{TRUE}); \code{no_xy} (exclude X and Y chromosomes); \code{ge_median}, \code{ge_q25}, \code{ge_q75} (expression at least the
-median / quartile of \strong{all} genes in \code{genes}, not of the subset, so strata are comparable across subsets).
+median / quartile of \strong{all} genes in \code{genes}, not of the subset, so strata are comparable across subsets;
+genes without an expression value are left out of these strata).
 }
 \examples{
 g <- data.frame(expression = 1:4, masked = c(TRUE, FALSE, FALSE, FALSE))

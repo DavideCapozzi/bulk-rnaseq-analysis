@@ -3,7 +3,8 @@
 #' Subsets are written as tokens joined by `+`, all of which must hold:
 #' `all`; `no_<flag>` (exclude genes where logical column `<flag>` is `TRUE`); `in_<flag>` (keep genes where it is
 #' `TRUE`); `no_xy` (exclude X and Y chromosomes); `ge_median`, `ge_q25`, `ge_q75` (expression at least the
-#' median / quartile of **all** genes in `genes`, not of the subset, so strata are comparable across subsets).
+#' median / quartile of **all** genes in `genes`, not of the subset, so strata are comparable across subsets;
+#' genes without an expression value are left out of these strata).
 #'
 #' @param genes `data.frame` with one row per gene: `expression` (numeric) and any logical flag columns;
 #'   `chromosome` is needed for `no_xy`.
@@ -21,9 +22,9 @@ gene_subset <- function(genes, subset, organism = "human") {
     keep <- keep & switch(tok,
       all = TRUE,
       no_xy = !genes$chromosome %in% c(org$chromosome_x, org$chromosome_y),
-      ge_median = genes$expression >= stats::median(genes$expression),
-      ge_q25 = genes$expression >= stats::quantile(genes$expression, 0.25),
-      ge_q75 = genes$expression >= stats::quantile(genes$expression, 0.75),
+      ge_median = genes$expression >= stats::median(genes$expression, na.rm = TRUE),
+      ge_q25 = genes$expression >= stats::quantile(genes$expression, 0.25, na.rm = TRUE),
+      ge_q75 = genes$expression >= stats::quantile(genes$expression, 0.75, na.rm = TRUE),
       {
         flag <- sub("^(no|in)_", "", tok)
         if (!grepl("^(no|in)_", tok) || !flag %in% names(genes)) {
@@ -38,5 +39,6 @@ gene_subset <- function(genes, subset, organism = "human") {
       }
     )
   }
+  keep[is.na(keep)] <- FALSE
   keep
 }

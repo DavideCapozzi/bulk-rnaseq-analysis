@@ -7,7 +7,7 @@
 run_power(inputs, params, context)
 }
 \arguments{
-\item{inputs}{\code{list} with \code{se} (counts).}
+\item{inputs}{\code{list} with \code{se} (counts) and optional \code{gene_flags} (for \code{universes} subsets).}
 
 \item{params}{\code{list}. \code{modules.power} from the config.}
 

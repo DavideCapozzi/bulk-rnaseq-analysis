@@ -43,7 +43,31 @@ All notable changes to this project are documented here. The format follows
   shrinkage, bootstrap over genes with the project seed), the 95% interval factor of a single gene's BCV for the
   residual df, and sample sizes per group from Hart et al. 2013 over a grid of CV, mean count, fold change and
   alpha (`n_hart()`); `grid.cv_labels` names the assumption behind each CV.
-- Scenario a has a synthetic MultiQC report (`tests/fixtures/make_multiqc_fixture.py`) and a QC-only library.
+- `contamination` module: profile scores per sample (mean log2(CPM + 1) and CPM sum over a gene list, CPM of all
+  genes; `rel_to_max` for `reference_profile`), per-gene CPM of the profiles, `ratio_checks` (log2 CPM ratios between
+  two samples over a profile's genes), `excess_checks` (CPM of genes above baseline samples per unit of a profile's
+  CPM, and the ratio between two samples) and `contaminant_mask`: genes of `mask.include` gene-set groups of an
+  MSigDB export and in no `mask.exclude` group, plus the genes of `mask.add_profiles`. The registry caveats say that
+  the mask removes known markers only and that profiles chosen from the same samples make it partly data-derived.
+- `reference` module: reference expression of configured cell types from Human Protein Atlas exports
+  (`hpa_immune_cell`, nTPM; `hpa_single_cell`, nCPM) for every gene, `target_expressed`, `contam_sensitive` and
+  `reference_universe` (target expressed and not contamination-sensitive), gene counts per criterion
+  (`reference_universe`) and, for `exclusion_candidates`, the first criterion that excludes each gene
+  (`universe_exclusions`, which uses the contamination mask when available).
+- Data levels `gene_mask` (from `contamination`) and `gene_universe` (from `reference`): per-gene flags
+  (`objects/gene_flags.rds`) that `pca`, `contrasts`, `concordance` and `power` use in gene subset expressions, e.g.
+  `no_masked` or `in_reference_universe+no_masked`. The universe does not include the mask: subsets combine the two
+  explicitly, so every table states which genes it used.
+- `modules.power.universes`: the BCV is estimated on each configured gene subset, in order, on one random stream.
+- `read_gene_sets()` (MSigDB export) and `read_reference_profiles()` (HPA downloads, zipped or not; a missing cell
+  type is an error).
+- Registry: a module parameter named `resource` names a resource the module needs (checked by the capability
+  resolution and verified before the step); the condition `configured` skips a module whose listed parameters are
+  all empty (`contamination`, `reference`), with the reason.
+- Generic gene list `proliferation` (`inst/extdata/gene_lists/contamination.tsv`).
+- Scenario a has a synthetic MultiQC report (`tests/fixtures/make_multiqc_fixture.py`), a QC-only library, and
+  synthetic gene sets and HPA exports (`tests/fixtures/make_reference_fixture.py`) for `contamination`, `reference`
+  and the gene subsets of `pca`, `contrasts`, `concordance` and `power`.
 - Generic gene list `hemoglobin` (`inst/extdata/gene_lists/expression_qc.tsv`).
 - Modules may return `figure_sizes`; the ingest QC table is passed to modules as `inputs$qc`.
 - `bulkrnaseq plan` and `run` stop before any analysis when an input file is missing, listing the paths.
@@ -65,6 +89,12 @@ All notable changes to this project are documented here. The format follows
   ported (`modules.contrasts.norm_variants`, `prior_variants`, `thinning`, `key_genes`;
   `modules.concordance.strata`, `deciles`, `concordant_gene_lists`, `power_simulation`); `designs[].engine` accepts
   only `deseq2`; `modules.contrasts.spread_subsets` is declared.
+- Config schema is strict for `modules.contamination` and `modules.reference`; their draft parameters are replaced
+  (`contamination.profiles` is a list of `{id, genes}`, `ratio_checks` / `excess_checks` / `mask` are structured,
+  `mask.resource` names the gene-set export; `reference.target_cell`, `contaminant_cells`, `axes` and
+  `universe_grid` give way to `profiles`, `target`, `contaminants` and `exclusion_candidates`).
+- `reference` no longer lists `reference_axis` among its outputs nor `contrast_stats` among its inputs: the axis
+  analysis reads fold changes and the universe, and will run downstream of `contrasts` (which now reads the universe).
 - `inputs.coverage` and `inputs.checksums` are refused with "not implemented" instead of being ignored by the
   ingest. `inputs.qc` loses `sample_name_pattern` and `tables` (never read) and gains `multiqc[].read` and
   `sample_aliases`.
@@ -92,6 +122,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `gene_subset()`: with a gene without expression value (e.g. a gene tested only by `de_test`) the `ge_median`,
+  `ge_q25` and `ge_q75` strata were empty, because the median was `NA`; such genes are now left out of the strata.
 - `pca`: without `modules.pca.separation_factors` the `pc*_separates` labels and the colours of the PCA figure
   were empty, because the schema default (an empty list) was taken as "no factor"; it now means every factor of
   `samples.factors`, as documented. Configs that set `separation_factors` are unaffected.

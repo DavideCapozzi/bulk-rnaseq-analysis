@@ -6,7 +6,7 @@
 #' design of the config; with few residual degrees of freedom it is only a reference point, and the table says
 #' how wide a single gene's interval is.
 #'
-#' @param inputs `list` with `se` (counts).
+#' @param inputs `list` with `se` (counts) and optional `gene_flags` (for `universes` subsets).
 #' @param params `list`. `modules.power` from the config.
 #' @param context `list` with `cfg`, `gene_lists`, `organism`, `seed`.
 #' @return `list(tables, figures, meta)`; tables `bcv`, `sample_size_grid`.
@@ -25,7 +25,20 @@ run_power <- function(inputs, params, context) {
   df <- ncol(counts) - qr(des)$rank
   if (df < 1) abort("power module: design '", d$id, "' leaves no residual degree of freedom")
   keep <- config_filter_genes(se, cfg, context)
-  universes <- list(all = rownames(se)[keep])
+  rd <- SummarizedExperiment::rowData(se)
+  genes <- merge_gene_flags(
+    data.frame(
+      feature_id = rownames(se)[keep], chromosome = rd$chromosome[keep],
+      expression = rowMeans(log_cpm(counts[keep, , drop = FALSE]))
+    ),
+    inputs$gene_flags
+  )
+  uids <- vapply(params$universes, `[[`, "", "id")
+  if (anyDuplicated(uids)) abort("power module: duplicated universe id(s): ", toString(unique(uids[duplicated(uids)])))
+  universes <- list()
+  for (u in params$universes) {
+    universes[[u$id]] <- genes$feature_id[gene_subset(genes, u$subset, context$organism %||% "human")]
+  }
   rs <- params$reference_scenario
   grid <- params$grid
   # One seed for the whole bootstrap: universes run in sequence on the same random stream.
@@ -55,11 +68,13 @@ run_power <- function(inputs, params, context) {
     meta = list(
       bcv = list(
         description = paste0(
-          "BCV (sqrt of edgeR dispersion) on design '", d$id, "' (", d$formula, "), genes of gene_filter. ",
+          "BCV (sqrt of edgeR dispersion) on design '", d$id, "' (", d$formula, "), genes of gene_filter ",
+          "in each universe (a gene subset expression). ",
           "common_bcv_boot_*: 2.5% and 97.5% quantiles over ", params$bootstrap_replicates, " bootstrap samples of ",
           "genes; tagwise_raw_prior0_*: per-gene BCV without shrinkage."
         ),
         residual_df = df, seed = context$seed %||% 1, reference_scenario = rs,
+        universes = lapply(params$universes, function(u) list(id = u$id, subset = u$subset)),
         caveats = c(
           paste0(
             "With ", df, " residual df the 95% interval of a single gene's BCV spans ", width,

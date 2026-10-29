@@ -83,14 +83,14 @@ run_module_step <- function(cfg, out, module) {
   dir <- file.path(out, row$dir)
   inputs <- module_inputs(cfg, out, caps, strsplit(row$depends_on, ",")[[1]])
   resource_key <- function(r) if (r == "annotation") cfg$annotation$gtf %||% "gtf" else r
-  needed <- vapply(unlist(m[["resources"]]), resource_key, "")
-  needed <- needed[needed %in% names(cfg$resources$items %||% list())]
+  params <- module_params(cfg, module)
+  needed <- c(vapply(unlist(m[["resources"]]), resource_key, ""), param_resource_keys(params))
+  needed <- unique(needed[needed %in% names(cfg$resources$items %||% list())])
   context <- list(
     cfg = cfg, organism = cfg$project$organism %||% "human", gene_lists = project_gene_lists(cfg),
     resources = as.list(verify_resources(cfg, needed)), seed = cfg$project$seed %||% 1
   )
   fn <- getExportedValue("bulkrnaseq", m$`function`)
-  params <- module_params(cfg, module)
   result <- fn(inputs, params, context)
   xlsx <- if (isTRUE(cfg$export$xlsx)) file.path(out, "report", paste0(row$dir, ".xlsx"))
   written <- write_module_outputs(result, dir, params,
@@ -101,6 +101,12 @@ run_module_step <- function(cfg, out, module) {
     dir.create(file.path(dir, "objects"), showWarnings = FALSE)
     saveRDS(result$tables$contrast_stats, file.path(dir, "objects", "contrast_stats.rds"), version = 3)
     written <- c(written, file.path(dir, "objects", "contrast_stats.rds"))
+  }
+  if (any(c("gene_mask", "gene_universe") %in% unlist(m[["provides"]]))) {
+    if (is.null(result$gene_flags)) abort("module '", module, "' provides gene flags but returned no gene_flags")
+    dir.create(file.path(dir, "objects"), showWarnings = FALSE)
+    saveRDS(result$gene_flags, file.path(dir, "objects", "gene_flags.rds"), version = 3)
+    written <- c(written, file.path(dir, "objects", "gene_flags.rds"))
   }
   done_file(dir, written)
 }
@@ -120,5 +126,31 @@ module_inputs <- function(cfg, out, caps, depends_on) {
     if (file.exists(f)) pieces[[dep]] <- readRDS(f)
   }
   inputs$contrast_stats <- bind_contrast_tables(pieces)
+  flags <- list()
+  for (dep in setdiff(depends_on, "ingest")) {
+    f <- file.path(out, caps$dir[caps$module == dep], "objects", "gene_flags.rds")
+    if (file.exists(f)) flags[[dep]] <- readRDS(f)
+  }
+  if (length(flags) > 0) inputs$gene_flags <- combine_gene_flags(flags)
   inputs
+}
+
+# Per-gene flags of several modules in one table (one row per feature_id; a gene absent from a module's table
+# gets FALSE for its flags). Two modules may not provide a flag with the same name.
+combine_gene_flags <- function(flags) {
+  cols <- unlist(lapply(flags, function(f) setdiff(names(f), "feature_id")))
+  if (anyDuplicated(cols)) {
+    abort("gene flags provided by more than one module: ", toString(unique(cols[duplicated(cols)])))
+  }
+  ids <- unique(unlist(lapply(flags, `[[`, "feature_id")))
+  out <- data.frame(feature_id = ids, stringsAsFactors = FALSE)
+  for (f in flags) {
+    idx <- match(ids, f$feature_id)
+    for (col in setdiff(names(f), "feature_id")) {
+      v <- as.logical(f[[col]])[idx]
+      v[is.na(v)] <- FALSE
+      out[[col]] <- v
+    }
+  }
+  out
 }

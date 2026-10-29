@@ -145,7 +145,7 @@ module_unmet <- function(m, cfg, provided, contrasts, samples, lv, gene_lists) {
     ))
   }
   for (cond in m[["conditions"]] %||% list()) {
-    why <- condition_unmet(cond, cfg, contrasts, samples)
+    why <- condition_unmet(cond, cfg, contrasts, samples, m$name)
     if (!is.null(why)) {
       return(why)
     }
@@ -156,10 +156,28 @@ module_unmet <- function(m, cfg, provided, contrasts, samples, lv, gene_lists) {
       return(paste0("needs resource '", key, "' (resources.items) or gene list '", r, "'"))
     }
   }
+  keys <- param_resource_keys(with_defaults(cfg$modules[[m$name]], c("modules", m$name)))
+  missing <- setdiff(keys, names(cfg$resources$items %||% list()))
+  if (length(missing) > 0) {
+    return(paste0(
+      "needs resource(s) ", paste0("'", missing, "'", collapse = ", "), " named in modules.", m$name,
+      " (resources.items)"
+    ))
+  }
   NULL
 }
 
-condition_unmet <- function(cond, cfg, contrasts, samples) {
+# Resource keys named by a module's parameters: the values of every field called `resource`, at any depth.
+param_resource_keys <- function(params) {
+  if (!is.list(params)) {
+    return(character())
+  }
+  nms <- names(params) %||% rep("", length(params))
+  own <- unlist(params[nms == "resource"])
+  unique(as.character(c(own, unlist(lapply(params[nms != "resource"], param_resource_keys)))))
+}
+
+condition_unmet <- function(cond, cfg, contrasts, samples, module = NULL) {
   key <- names(cond)[[1]]
   val <- cond[[1]]
   n_samples <- if (is.null(samples)) 0L else nrow(samples_with_level(samples, "counts"))
@@ -197,6 +215,15 @@ condition_unmet <- function(cond, cfg, contrasts, samples) {
       if (!ok) {
         paste0("needs a design with >= ", val, " residual degree(s) of freedom (n samples - rank of the design matrix)")
       }
+    },
+    configured = {
+      params <- with_defaults(cfg$modules[[module]], c("modules", module))
+      set <- vapply(unlist(val), function(path) {
+        x <- params
+        for (k in strsplit(path, ".", fixed = TRUE)[[1]]) x <- x[[k]]
+        length(unlist(x)) > 0
+      }, TRUE)
+      if (!any(set)) paste0("needs ", paste0("modules.", module, ".", unlist(val), collapse = " or "), " in the config")
     },
     abort("modules.yaml: unknown condition '", key, "'")
   )

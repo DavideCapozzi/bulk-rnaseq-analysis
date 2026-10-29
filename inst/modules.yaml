@@ -8,15 +8,19 @@
 #   requires         all of these data levels must be available
 #   requires_any     at least one of these levels must be available (optional field)
 #   optional         used when available, never required
-#   resources        keys of config$resources that must be present in the cache
-#   conditions       extra checks evaluated by resolve_capabilities() (see R/capabilities.R)
+#   resources        keys of config$resources that must be present in the cache; a module parameter named
+#                    `resource` (at any depth, e.g. modules.reference.profiles[].resource) adds its value
+#   conditions       extra checks evaluated by resolve_capabilities() (see R/capabilities.R); configured: [p, q]
+#                    needs modules.<name>.p or .q non-empty (modules that do nothing without parameters)
 #   provides         data levels this module adds for downstream modules
 #   params           config key under modules.<name> (defaults live in config/schema.yaml)
 #   outputs          tables the module may write under NN_<name>/tables/ (a test checks implemented modules)
 #   figures          figures under NN_<name>/figures/; a name may be followed by _<suffix> (e.g. one per contrast)
 #   caveats          statistical notes for the module documentation
 
-levels: [counts, abundance, normalized, contrast_stats, ranked, coverage, qc]
+# gene_mask and gene_universe are per-gene logical flags (objects/gene_flags.rds of the providing module); modules
+# that use them select genes with subset expressions such as "no_masked" or "in_reference_universe+no_masked".
+levels: [counts, abundance, normalized, contrast_stats, ranked, coverage, qc, gene_mask, gene_universe]
 
 modules:
   qc:
@@ -39,7 +43,7 @@ modules:
     number: 3
     function: run_pca
     requires: [counts]
-    optional: [abundance, qc]
+    optional: [abundance, qc, gene_mask, gene_universe]
     resources: [annotation]
     conditions: [{min_samples: 3}]
     provides: []
@@ -70,15 +74,17 @@ modules:
     number: 5
     function: run_contamination
     requires: [counts]
-    resources: [annotation, contaminant_profiles, gene_sets]
-    conditions: []
-    provides: []
+    resources: [annotation]
+    conditions: [{configured: [profiles, mask.include]}]
+    provides: [gene_mask]
     params: modules.contamination
     outputs: [contamination_scores, contamination_profile_genes, profile_ratio_consistency,
               profile_excess, contaminant_mask]
     figures: [contamination_profiles]
     caveats:
-      - "Ratio consistency across a profile's genes is compatible with, not proof of, a single source."
+      - "Profile scores, ratios and excesses are descriptive; ratio consistency across a profile's genes is compatible with, not proof of, a single source."
+      - "The mask removes genes that the configured gene sets (e.g. a lung cell atlas) assign to contaminating cell types, plus the configured profiles; it cannot remove contaminant signal from other genes, nor show that the remaining signal is intrinsic to the target cells."
+      - "Profiles chosen from the same samples (e.g. PC1 drivers) make the mask partly data-derived: say so where it is used."
 
   contamination_sets:
     number: 6
@@ -96,16 +102,17 @@ modules:
   reference:
     number: 7
     function: run_reference
-    requires_any: [counts, contrast_stats]
-    optional: [contrast_stats]
-    resources: [annotation, reference_profiles]
-    conditions: []
-    provides: []
+    requires: [counts]
+    optional: [gene_mask]
+    resources: [annotation]
+    conditions: [{configured: [profiles]}]
+    provides: [gene_universe]
     params: modules.reference
-    outputs: [reference_profiles, reference_universe, universe_exclusions, reference_axis]
+    outputs: [reference_profiles, reference_universe, universe_exclusions]
     figures: []
     caveats:
-      - "Reference profiles come from other platforms and units (nTPM, nCPM): thresholds are coarse filters."
+      - "Reference profiles come from other platforms, tissues and units (nTPM, nCPM): thresholds are coarse filters."
+      - "reference_universe uses the references only; combine it with the contamination mask explicitly (in_reference_universe+no_masked)."
 
   deconvolution:
     number: 8
@@ -125,6 +132,7 @@ modules:
     number: 9
     function: run_contrasts
     requires: [counts]
+    optional: [gene_mask, gene_universe]
     resources: [annotation]
     conditions: [{contrasts_defined: true}]
     provides: [contrast_stats, ranked]
@@ -153,7 +161,7 @@ modules:
     number: 11
     function: run_concordance
     requires: [contrast_stats]
-    optional: [counts]
+    optional: [counts, gene_mask, gene_universe]
     resources: []
     conditions: [{min_contrasts: 2}, {contrast_pairs_defined: true}]
     provides: []
@@ -239,6 +247,7 @@ modules:
     number: 17
     function: run_power
     requires: [counts]
+    optional: [gene_mask, gene_universe]
     resources: []
     conditions: [{design_df_min: 1}]
     provides: []

@@ -377,19 +377,86 @@ properties:
                 denominator_sample: {type: string}
       contamination:
         type: object
+        additionalProperties: false
         default: {}
         properties:
           enabled: {type: boolean, default: true}
-          profiles: {type: string, default: contaminant_profiles}
-          reference_profile: {type: [string, "null"], default: null}
-          ratio_checks: {type: array, default: []}
-          excess_checks: {type: array, default: []}
+          profiles:
+            type: array
+            default: []
+            description: Gene profiles of contaminating (or reference) cells, scored per sample on CPM of all genes.
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, genes]
+              properties:
+                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                genes: {$ref: "#/$defs/gene_list_ref"}
+          reference_profile:
+            type: [string, "null"]
+            default: null
+            description: Profile id whose CPM sum is also reported relative to the sample with the largest value (rel_to_max).
+          ratio_pseudocount: {type: number, minimum: 0, default: 1, description: CPM added before the log2 ratios of ratio_checks.}
+          ratio_checks:
+            type: array
+            default: []
+            description: Per-gene log2 CPM ratios between two samples over a profile's genes.
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, profile, numerator_sample, denominator_sample]
+              properties:
+                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                profile: {type: string}
+                numerator_sample: {type: string}
+                denominator_sample: {type: string}
+          excess_checks:
+            type: array
+            default: []
+            description: >-
+              CPM of genes above the mean of baseline_samples, divided by the CPM sum of a profile, in two samples,
+              and the ratio of the two excesses (a similar ratio for genes and profile is compatible with the genes
+              coming from the profile's cells).
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, genes, profile, baseline_samples, samples]
+              properties:
+                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                genes: {$ref: "#/$defs/gene_list_ref"}
+                profile: {type: string}
+                baseline_samples: {type: array, items: {type: string}, minItems: 1}
+                samples: {type: array, items: {type: string}, minItems: 2, maxItems: 2}
           mask:
             type: object
+            additionalProperties: false
             default: {}
+            description: >-
+              masked = (in any include group and in no exclude group) or among the genes of add_profiles. Groups are
+              gene sets of an MSigDB export (resource); their genes match by Ensembl ID (by symbol when
+              annotation.id_type is gene_symbol).
             properties:
-              include_sets: {type: array, items: {type: string}, default: []}
-              exclude_sets: {type: array, items: {type: string}, default: []}
+              resource: {type: [string, "null"], default: null, description: Key of an msigdb_export in resources.items.}
+              include:
+                type: array
+                default: []
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [id, sets]
+                  properties:
+                    id: {type: string, pattern: "^[a-z0-9_]+$"}
+                    sets: {type: array, items: {type: string}, minItems: 1}
+              exclude:
+                type: array
+                default: []
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [id, sets]
+                  properties:
+                    id: {type: string, pattern: "^[a-z0-9_]+$"}
+                    sets: {type: array, items: {type: string}, minItems: 1}
               add_profiles: {type: array, items: {type: string}, default: []}
       contamination_sets:
         type: object
@@ -400,16 +467,33 @@ properties:
           inter_gene_cor: {type: number, default: 0.01}
       reference:
         type: object
+        additionalProperties: false
         default: {}
         properties:
           enabled: {type: boolean, default: true}
-          target_cell: {type: [string, "null"], default: null}
-          contaminant_cells: {type: array, items: {type: string}, default: []}
-          min_target_expr: {type: number, default: 1}
-          contam_min: {type: number, default: 20}
-          contam_fold: {type: number, default: 5}
-          axes: {type: array, default: []}
-          universe_grid: {type: boolean, default: false}
+          profiles:
+            type: array
+            default: []
+            description: >-
+              Reference expression of one cell type from an HPA export: nTPM for kind hpa_immune_cell, nCPM for
+              hpa_single_cell (kind of the resource in resources.items).
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, resource, cell]
+              properties:
+                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                resource: {type: string, description: Key in resources.items.}
+                cell: {type: string, description: Value of the 'Immune cell' or 'Cell type' column.}
+          target: {type: [string, "null"], default: null, description: Profile id of the target cells.}
+          contaminants: {type: array, items: {type: string}, default: [], description: Profile ids of contaminating cells.}
+          min_target_expr: {type: number, default: 1, description: "target_expressed: target value >= this."}
+          contam_min: {type: number, default: 20, description: "contam_sensitive: max contaminant value >= this ..."}
+          contam_fold: {type: number, default: 5, description: "... and >= contam_fold x (target + 1)."}
+          exclusion_candidates:
+            $ref: "#/$defs/gene_list_ref"
+            default: []
+            description: Genes (protein-coding) whose inclusion in the universe, or the reason for exclusion, is reported.
       deconvolution:
         type: object
         default: {}
@@ -574,6 +658,19 @@ properties:
         properties:
           enabled: {type: boolean, default: true}
           design: {type: [string, "null"], default: null, description: "Id of a designs[] entry (default: the first)."}
+          universes:
+            type: array
+            default: [{id: all, subset: all}]
+            description: >-
+              Gene sets of the BCV, as subset expressions over the filtered genes (e.g. in_reference_universe+no_masked);
+              estimated in this order on one random stream.
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, subset]
+              properties:
+                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                subset: {type: string}
           bootstrap_replicates: {type: integer, minimum: 1, default: 200}
           reference_scenario:
             type: object

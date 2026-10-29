@@ -31,6 +31,9 @@ resources:
   items:
     gtf: {source: "file://../../tests/fixtures/resources/annotation.gtf.gz", kind: gtf}
     gene_sets: {source: "file://../../tests/fixtures/resources/gene_sets.tsv.gz", kind: msigdb_export}
+    contaminant_sets: {source: "file://../../tests/fixtures/resources/contaminant_sets.tsv.gz", kind: msigdb_export}
+    hpa_immune_cell: {source: "file://../../tests/fixtures/resources/hpa_immune_cell.tsv.zip", kind: hpa_immune_cell}
+    hpa_single_cell: {source: "file://../../tests/fixtures/resources/hpa_single_cell.tsv.zip", kind: hpa_single_cell}
 contrasts:
   - {id: treated_vs_control_b1, numerator: [s1], denominator: [s3]}
   - {id: treated_vs_control_b2, numerator: [s2], denominator: [s4]}
@@ -40,5 +43,42 @@ designs:
   - {id: additive, formula: "~ batch + condition", contrast: [condition, treated, control]}
 modules:
   geneset_test: {methods: [camera_pr, fgsea], collections: [H]}
+  pca:
+    gene_subsets: [all, no_masked, in_reference_universe+no_masked]
+  contamination:
+    profiles:
+      - {id: myeloid_like, genes: [A2M, SERPINA3, ABCA1, ABL1, ACTB]}
+      - {id: t_like, genes: [ACTG1, ACTN4, ACO2, ACLY]}
+    reference_profile: t_like
+    ratio_checks:
+      - {id: s3_over_s1, profile: myeloid_like, numerator_sample: s3, denominator_sample: s1}
+    excess_checks:
+      - {id: extra_genes, genes: [AAMP, ABAT, ABCF1], profile: myeloid_like, baseline_samples: [s1, s3], samples: [s2, s4]}
+    mask:
+      resource: contaminant_sets
+      include:
+        - {id: myeloid, sets: [SYNTHETIC_MYELOID_CELL]}
+        - {id: stromal, sets: [SYNTHETIC_STROMAL_CELL]}
+      exclude:
+        - {id: t_nk, sets: [SYNTHETIC_T_NK_CELL]}
+      add_profiles: [myeloid_like]
+  reference:
+    profiles:
+      - {id: monaco_t_reg, resource: hpa_immune_cell, cell: T-reg}
+      - {id: monaco_naive_cd4, resource: hpa_immune_cell, cell: naive CD4 T-cell}
+      - {id: monaco_classical_monocyte, resource: hpa_immune_cell, cell: classical monocyte}
+      - {id: hpa_sc_macrophages, resource: hpa_single_cell, cell: macrophages}
+      - {id: hpa_sc_fibroblasts, resource: hpa_single_cell, cell: fibroblasts}
+    target: monaco_t_reg
+    contaminants: [monaco_classical_monocyte, hpa_sc_macrophages, hpa_sc_fibroblasts]
+    exclusion_candidates: [A1BG, A2M, NAT1, ACTB, NOT_A_GENE]
+  contrasts:
+    spread_subsets: [all, no_masked, in_reference_universe+no_masked]
+  concordance:
+    subsets: [all, no_masked+ge_median, in_reference_universe+no_masked]
+  power:
+    universes:
+      - {id: all, subset: all}
+      - {id: reference_universe, subset: in_reference_universe+no_masked}
 export:
   xlsx: true
