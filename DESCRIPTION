@@ -14,6 +14,7 @@ Description: Turns the outputs of an RNA-seq provider (gene counts, abundances,
     steps, and an explicit inference scope for every p-value.
 License: MIT + file LICENSE
 Encoding: UTF-8
+SystemRequirements: python3 (standard library only; decodes MultiQC reports)
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.4)

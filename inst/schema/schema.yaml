@@ -157,30 +157,33 @@ properties:
       qc:
         type: object
         additionalProperties: false
+        required: [multiqc]
         properties:
           multiqc:
             type: array
+            minItems: 1
             items:
               type: object
               additionalProperties: false
               required: [id, file]
               properties:
-                id: {type: string, pattern: "^[a-z0-9_]+$"}
-                file: {type: string, description: MultiQC HTML report or multiqc_data.json.}
-          sample_name_pattern:
-            type: string
-            default: "{input}"
-            description: How MultiQC sample names relate to input_column (regex with {input}).
-          tables:
-            description: Extra QC tables computed upstream (e.g. light FASTQ metrics), imported as is.
-            type: array
-            items:
-              type: object
-              required: [file, sample_column]
-              properties:
-                file: {type: string}
-                sample_column: {type: string}
-                sample_pattern: {type: string}
+                id: {type: string, pattern: "^[a-z0-9_]+$", description: Report id (names the decoded files in 01_ingest/multiqc/).}
+                file:
+                  type: string
+                  description: >-
+                    MultiQC HTML report with embedded compressed plot data (MultiQC 1.x; tested with 1.12 and 1.13).
+                read:
+                  type: string
+                  enum: [r1, r2]
+                  description: >-
+                    The report holds FastQC on raw reads of this mate: its FastQC metrics get the suffix _r1/_r2 and
+                    r1 gives raw_read_pairs. FastQC sections of reports without `read` are not read.
+          sample_aliases:
+            type: object
+            additionalProperties: {type: string}
+            description: >-
+              MultiQC sample name -> input_column, for names that do not contain the input_column (by default a
+              MultiQC name belongs to the one sample whose input_column it contains).
       checksums:
         type: object
         additionalProperties: false
@@ -510,22 +513,92 @@ properties:
           universes: {type: array, items: {type: string}, default: [all]}
       pairing:
         type: object
+        additionalProperties: false
         default: {}
         properties:
           enabled: {type: boolean, default: true}
-          fingerprint_variants: {type: array, default: []}
-          male_reference_samples: {type: array, items: {type: string}, default: []}
-          sex_denominators: {type: array, default: []}
+          sex_genes: {$ref: "#/$defs/gene_list_ref", default: sex_genes}
+          xist_genes: {$ref: "#/$defs/gene_list_ref", default: xist}
+          group_column:
+            type: [string, "null"]
+            default: null
+            description: >-
+              Sample sheet column with the hypothesised donor or pool (equal values = same donor). Its pairs are
+              labelled in fingerprint_distances and checked in pairing_summary.
+          across_factor:
+            type: [string, "null"]
+            default: null
+            description: Two-level factor that each donor is expected to span (e.g. the sorted fraction).
+          fingerprint_variants:
+            type: array
+            default: [{id: fingerprint, genes: fingerprint_genes}]
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, genes]
+              properties:
+                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                genes: {$ref: "#/$defs/gene_list_ref"}
+                normalization:
+                  type: string
+                  enum: [cpm, cpm_tmm]
+                  default: cpm
+                  description: CPM on all genes, or TMM-normalised CPM on the genes kept by gene_filter (sex genes kept).
+                min_total_count: {type: integer, minimum: 0, default: 0, description: Genes with fewer reads over all samples are dropped.}
+          male_reference_samples:
+            type: array
+            items: {type: string}
+            default: []
+            description: >-
+              sample_ids taken as all-male material (XIST about 0); male fractions are relative to their mean. Empty:
+              the male fraction is not estimated.
+          sex_denominators:
+            type: array
+            default: [{id: chr_y}]
+            items:
+              type: object
+              additionalProperties: false
+              required: [id]
+              properties:
+                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                numerator:
+                  $ref: "#/$defs/gene_list_ref"
+                  description: Genes summed in the numerator (default the chrY genes of sex_genes).
+                denominator:
+                  $ref: "#/$defs/gene_list_ref"
+                  description: Genes summed in the denominator (default none).
       power:
         type: object
+        additionalProperties: false
         default: {}
         properties:
           enabled: {type: boolean, default: true}
-          design: {type: [string, "null"], default: null}
-          bootstrap_replicates: {type: integer, default: 200}
+          design: {type: [string, "null"], default: null, description: "Id of a designs[] entry (default: the first)."}
+          bootstrap_replicates: {type: integer, minimum: 1, default: 200}
+          reference_scenario:
+            type: object
+            additionalProperties: false
+            default: {}
+            description: Scenario of the n_hart_* columns of the bcv table.
+            properties:
+              mu: {type: number, default: 100}
+              fold_change: {type: number, default: 2}
+              alpha: {type: number, default: 0.01}
           grid:
             type: object
-            default: {cv: [0.2, 0.3, 0.4, 0.6], mu: [20, 100], fold_change: [1.5, 2], alpha: [0.01, 0.001], power: 0.8}
+            additionalProperties: false
+            default: {}
+            properties:
+              cv: {type: array, items: {type: number}, default: [0.2, 0.3, 0.4, 0.6]}
+              cv_labels:
+                type: array
+                items: {type: string}
+                default: []
+                description: One label per cv value (the assumption behind it); empty for none.
+              mu: {type: array, items: {type: number}, default: [20, 100]}
+              fold_change: {type: array, items: {type: number}, default: [1.5, 2]}
+              alpha: {type: array, items: {type: number}, default: [0.01, 0.001]}
+              power: {type: number, default: 0.8}
       coverage:
         type: object
         default: {}

@@ -22,6 +22,28 @@ All notable changes to this project are documented here. The format follows
 - `check_normalization()`: at ingest, when raw and provider-normalised counts are both configured, reports the
   implied size factors, whether DESeq2 median-of-ratios reproduces them, and which "at least k reads in at least
   n samples" rule yields the provider's gene set (`01_ingest/normalization_check.tsv`, ingest report).
+- MultiQC reports as QC input (`inputs.qc.multiqc`): `read_multiqc()` decodes the plot data embedded in MultiQC
+  1.x HTML reports with `inst/python/multiqc_decode.py` (Python standard library; no R package decodes LZString),
+  writes it to `01_ingest/multiqc/` and derives per-sample metrics from the STAR, RSeQC and raw-read FastQC
+  sections (`raw_read_pairs`, `pct_unique`, `assigned_reverse`, `genebody_3to5`, `mean_q_r1`,
+  `adapter_pct_last_pos_r1`, ...) into the QC table, hence `qc_summary` and `pc1_vs_qc`. Sample names are matched
+  through `input_column` or `inputs.qc.sample_aliases`; an ambiguous or unmatched name is an error.
+- Samples with `inputs_available: qc` (no expression data, e.g. libraries that never reached the counts) may leave
+  factor columns empty and appear only in the QC tables.
+- `pc1_vs_qc.meta.json` records `n_samples` and the smallest two-sided Spearman permutation p attainable
+  (`2 / n!`); the registry caveats say that with 4 samples the table lists candidates, not drivers.
+- `pairing` module: sex genes (XIST, chrY genes) and expression fingerprints of genotype-sensitive genes per
+  pair of samples (`fingerprint_variants`: gene lists, CPM or TMM-CPM, minimum reads), male RNA fraction relative
+  to configured all-male reference samples with optional denominators (`sex_denominators`), and
+  `pairing_summary`: whether the pairs of a hypothesised donor or pool (`group_column`) are the nearest across
+  `across_factor`, with the chance of that outcome for an unrelated grouping (at most 1/k! for k groups). The
+  outputs are expression clues and say so; variants without genes are skipped and noted. New gene lists
+  `fingerprint_genes`, `fingerprint_genes_extended`, `pan_t`, `xist` (sources: earlier analysis code, no citation).
+- `power` module: BCV of the data with edgeR on a design of the config (common, tagwise, per-gene without
+  shrinkage, bootstrap over genes with the project seed), the 95% interval factor of a single gene's BCV for the
+  residual df, and sample sizes per group from Hart et al. 2013 over a grid of CV, mean count, fold change and
+  alpha (`n_hart()`); `grid.cv_labels` names the assumption behind each CV.
+- Scenario a has a synthetic MultiQC report (`tests/fixtures/make_multiqc_fixture.py`) and a QC-only library.
 - Generic gene list `hemoglobin` (`inst/extdata/gene_lists/expression_qc.tsv`).
 - Modules may return `figure_sizes`; the ingest QC table is passed to modules as `inputs$qc`.
 - `bulkrnaseq plan` and `run` stop before any analysis when an input file is missing, listing the paths.
@@ -37,14 +59,15 @@ All notable changes to this project are documented here. The format follows
   `{design, contrast_table}` objects.
 - `de_test` writes its results as `contrast_stats` (registry outputs updated), like the other producers of
   contrasts.
-- Config schema is strict where the code is implemented: unknown parameters of the implemented modules
-  (`qc`, `pca`, `contrasts`, `de_test`, `concordance`, `ora`, `volcano`) and of `designs` / `contrast_pairs`
+- Config schema is strict where the code is implemented: unknown parameters of the implemented modules (`qc`, `pca`,
+  `contrasts`, `de_test`, `concordance`, `ora`, `volcano`, `pairing`, `power`) and of `designs` / `contrast_pairs`
   items are errors instead of being ignored. Parameters that no code read are removed until their analyses are
   ported (`modules.contrasts.norm_variants`, `prior_variants`, `thinning`, `key_genes`;
-  `modules.concordance.strata`, `deciles`, `concordant_gene_lists`, `power_simulation`); `designs[].engine`
-  accepts only `deseq2`; `modules.contrasts.spread_subsets` is declared.
-- `inputs.qc`, `inputs.coverage` and `inputs.checksums` are refused with "not implemented" instead of being
-  ignored by the ingest (scenario a no longer declares them).
+  `modules.concordance.strata`, `deciles`, `concordant_gene_lists`, `power_simulation`); `designs[].engine` accepts
+  only `deseq2`; `modules.contrasts.spread_subsets` is declared.
+- `inputs.coverage` and `inputs.checksums` are refused with "not implemented" instead of being ignored by the
+  ingest. `inputs.qc` loses `sample_name_pattern` and `tables` (never read) and gains `multiqc[].read` and
+  `sample_aliases`.
 - A module that is not implemented is reported as such first, before any missing resource or condition.
 - Module defaults live only in the schema (`with_defaults()`), also when module functions are called directly.
 - The module registry lists only the tables and figures the modules write; a test checks it.

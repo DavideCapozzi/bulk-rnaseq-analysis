@@ -7,7 +7,8 @@
 #' @param path `character(1)`. Tab-separated file with at least `sample_id` and `input_column`.
 #' @param factors `list`. Named list factor -> ordered levels (reference first), from `samples.factors`.
 #' @return A `data.frame` with one row per sample, `sample_id` as row names, factor columns as factors and a
-#'   list column `inputs_available` (character vectors of data levels; `NA` means all).
+#'   list column `inputs_available` (character vectors of data levels; `NA` means all). Factor columns may be
+#'   empty only for samples without expression data (`inputs_available` without counts, abundance, normalized).
 #' @examples
 #' f <- tempfile(fileext = ".tsv")
 #' writeLines(c("sample_id\tinput_column\tcondition", "a\tA\tctrl", "b\tB\ttrt"), f)
@@ -26,7 +27,7 @@ read_sample_sheet <- function(path, factors = list()) {
   for (f in names(factors)) {
     if (!f %in% names(ss)) abort("samples.factors: column '", f, "' is not in the sample sheet")
     lev <- as.character(unlist(factors[[f]]))
-    extra <- setdiff(unique(ss[[f]]), lev)
+    extra <- setdiff(stats::na.omit(unique(ss[[f]])), lev)
     if (length(extra) > 0) {
       abort("sample sheet column '", f, "': values not in samples.factors: ", paste(extra, collapse = ", "))
     }
@@ -34,6 +35,15 @@ read_sample_sheet <- function(path, factors = list()) {
   }
   avail <- if ("inputs_available" %in% names(ss)) ss$inputs_available else rep(NA_character_, nrow(ss))
   ss$inputs_available <- lapply(avail, function(a) if (is.na(a)) NA_character_ else trimws(strsplit(a, ",")[[1]]))
+  # A factor may be empty only for samples without expression data (e.g. inputs_available: qc).
+  expr_levels <- c("counts", "abundance", "normalized")
+  expr <- vapply(ss$inputs_available, function(a) all(is.na(a)) || any(a %in% expr_levels), TRUE)
+  for (f in names(factors)) {
+    empty <- ss$sample_id[is.na(ss[[f]]) & expr]
+    if (length(empty) > 0) {
+      abort("sample sheet column '", f, "' is empty for sample(s) with expression data: ", toString(empty))
+    }
+  }
   rownames(ss) <- ss$sample_id
   ss
 }

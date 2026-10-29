@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 # Generates every synthetic fixture used by the tests and the quickstart (seeded, deterministic).
-# Run from the repository root: Rscript tests/fixtures/make_fixtures.R
+# Run from the repository root, after python3 -I tests/fixtures/make_multiqc_fixture.py:
+#   Rscript tests/fixtures/make_fixtures.R
 # The files mimic the structure of real provider outputs (STAR N_* rows, StringTie duplicated gene IDs, Excel
 # workbooks with several sheets, a sheet name containing ">", a wrong used range <dimension ref="A1"/>, a signed
 # FoldChange column, a NOISeq table) but contain no real measurements. Gene symbols are real human symbols so that
@@ -112,10 +113,11 @@ for (j in seq_along(libs)) {
   st <- rbind(st[1, ], dup, st[-1, ])
   data.table::fwrite(st, file.path(a, "abundance", paste0(libs[j], "_gene_abundance.tab")), sep = "\t")
 }
+# s5: a library that failed before alignment, present only in the MultiQC report (make_multiqc_fixture.py).
 writeLines(c(
-  "sample_id\tinput_column\tcondition\tbatch\tlabel", "s1\tlib_A1\ttreated\tb1\tA1 treated",
-  "s2\tlib_A2\ttreated\tb2\tA2 treated", "s3\tlib_B1\tcontrol\tb1\tB1 control",
-  "s4\tlib_B2\tcontrol\tb2\tB2 control"
+  "sample_id\tinput_column\tcondition\tbatch\tlabel\tinputs_available", "s1\tlib_A1\ttreated\tb1\tA1 treated\t",
+  "s2\tlib_A2\ttreated\tb2\tA2 treated\t", "s3\tlib_B1\tcontrol\tb1\tB1 control\t",
+  "s4\tlib_B2\tcontrol\tb2\tB2 control\t", "s5\tlib_C1\t\t\tC1 QC only\tqc"
 ), file.path(a, "samples.tsv"))
 files_a <- setdiff(sort(list.files(a, recursive = TRUE)), c("md5sum.txt", "samples.tsv"))
 writeLines(sprintf("%s  ./%s", vapply(file.path(a, files_a), md5_file, ""), files_a), file.path(a, "md5sum.txt"))

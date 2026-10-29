@@ -32,6 +32,8 @@ modules:
     figures: [qc_metrics]
     caveats:
       - "Expression QC uses assigned reads per sample; percentages are of the library size, not of raw reads."
+      - "MultiQC metrics are taken or derived from the provider's MultiQC reports (STAR, RSeQC, FastQC on raw reads); samples with inputs_available: qc appear only in qc_summary."
+      - "assigned_reverse and assigned_same are STAR GeneCounts 'Reverse Stranded' and 'Same Stranded' columns whatever the library protocol; strand_ratio_star = same / reverse."
 
   pca:
     number: 3
@@ -47,6 +49,7 @@ modules:
     figures: [pca, sample_correlation, pc1_loading_vs_gene_span]
     caveats:
       - "With n samples the PCA has at most n - 1 components; correlations with QC metrics are descriptive."
+      - "pc1_vs_qc lists candidates, not drivers: with n samples even a perfect rank correlation has an exact two-sided permutation p of 2/n! (1/12 with 4 samples), and with 4 samples |Spearman rho| >= 0.8 occurs by chance 1 time in 3."
       - "'separates' labels the factor with the largest mean difference on a PC; it is not a test."
 
   markers:
@@ -223,10 +226,14 @@ modules:
     conditions: []
     provides: []
     params: modules.pairing
-    outputs: [sex_genes, sex_summary, fingerprint_genes, fingerprint_distances, male_fraction]
+    outputs: [sex_genes, sex_summary, fingerprint_genes, fingerprint_distances, pairing_summary, male_fraction,
+              male_fraction_genes]
     figures: [pairing_sex_fingerprint]
     caveats:
       - "Expression-based fingerprints are clues, not genotype evidence; expression of polymorphic genes also depends on cell composition."
+      - "pairing_summary orients the question of who the donors are to whoever holds the sample records; it does not resolve it. With k donors (or pools) the same-group pairs are the nearest by chance with probability up to 1/k! (1/2 with 2, 1/6 with 3)."
+      - "A sex mismatch within a hypothesised pair (XIST against chrY genes) is the strongest expression clue against the pairing; matching sex is weak evidence for it."
+      - "The male fraction assumes similar chrY expression across samples and donors and is relative to the male reference samples of the config."
 
   power:
     number: 17
@@ -239,7 +246,9 @@ modules:
     outputs: [bcv, sample_size_grid]
     figures: []
     caveats:
-      - "BCV from 1 residual df has a per-gene 95% interval spanning more than an order of magnitude."
+      - "BCV from 1 residual df has a per-gene 95% interval spanning more than an order of magnitude (x0.45 to x31.9)."
+      - "The bootstrap of the common BCV resamples genes: it measures stability to the choice of genes, not biological variability."
+      - "Sample sizes come from the Hart et al. 2013 approximation and the assumed CVs of the config; they are indicative."
 
   coverage:
     number: 18

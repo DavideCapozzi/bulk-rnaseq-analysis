@@ -1,6 +1,7 @@
 list	gene_symbol	source
 x_inactivation	XIST	unknown (carried over unchanged from earlier analysis code)
 x_inactivation	TSIX	unknown (carried over unchanged from earlier analysis code)
+xist	XIST	unknown (carried over unchanged from earlier analysis code)
 sex_genes	XIST	unknown (carried over unchanged from earlier analysis code)
 sex_genes	TSIX	unknown (carried over unchanged from earlier analysis code)
 sex_genes	RPS4Y1	unknown (carried over unchanged from earlier analysis code)

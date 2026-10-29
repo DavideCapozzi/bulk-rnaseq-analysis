@@ -15,7 +15,13 @@ input_levels <- function(cfg) {
   }
   if (!is.null(inp$normalized)) lv$normalized <- paste0("matrix (", inp$normalized$file, ")")
   if (!is.null(inp$coverage)) lv$coverage <- paste0("bedgraph (", inp$coverage$files, ")")
-  if (identical(inp$counts$adapter, "star_reads_per_gene")) lv$qc <- "STAR N_* rows"
+  qc <- c(
+    if (identical(inp$counts$adapter, "star_reads_per_gene")) "STAR N_* rows",
+    if (!is.null(inp$qc$multiqc)) {
+      paste0("MultiQC (", paste(vapply(inp$qc$multiqc, `[[`, "", "id"), collapse = ", "), ")")
+    }
+  )
+  if (length(qc) > 0) lv$qc <- paste(qc, collapse = "; ")
   tabs <- inp$contrast_tables %||% list()
   contrasts <- data.frame(contrast_id = character(), significance_metric = character(), source = character())
   for (t in tabs) {

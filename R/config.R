@@ -100,7 +100,7 @@ validate_config <- function(cfg) {
       " need samples.sheet (sample metadata come only from the sample sheet)"
     )
   }
-  pending <- intersect(c("qc", "coverage", "checksums"), names(cfg$inputs))
+  pending <- intersect(c("coverage", "checksums"), names(cfg$inputs))
   if (length(pending) > 0) {
     abort(
       "config: inputs.", paste(pending, collapse = ", inputs."), " not implemented in bulkrnaseq ",

@@ -13,7 +13,8 @@ read_sample_sheet(path, factors = list())
 }
 \value{
 A \code{data.frame} with one row per sample, \code{sample_id} as row names, factor columns as factors and a
-list column \code{inputs_available} (character vectors of data levels; \code{NA} means all).
+list column \code{inputs_available} (character vectors of data levels; \code{NA} means all). Factor columns may be
+empty only for samples without expression data (\code{inputs_available} without counts, abundance, normalized).
 }
 \description{
 Sample metadata come only from the sample sheet, never from file or column names, because provider

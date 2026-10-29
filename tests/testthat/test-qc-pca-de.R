@@ -1,21 +1,3 @@
-nb_se <- function(n_genes = 1000, groups = c("a", "a", "b", "b"), seed = 1, effect = 3) {
-  set.seed(seed)
-  n <- length(groups)
-  mu <- matrix(rep(stats::rexp(n_genes, 1 / 200), n), n_genes)
-  de <- seq_len(n_genes) <= n_genes / 10
-  mu[de, groups == "b"] <- mu[de, groups == "b"] * effect
-  m <- matrix(stats::rnbinom(n_genes * n, mu = mu, size = 20), n_genes,
-    dimnames = list(sprintf("g%04d", seq_len(n_genes)), paste0("s", seq_len(n)))
-  )
-  storage.mode(m) <- "integer"
-  rd <- S4Vectors::DataFrame(
-    feature_id = rownames(m), gene_symbol = rownames(m), biotype = rep(c("protein_coding", "lncRNA"), length.out = n_genes),
-    chromosome = "1", start = 1L, end = as.integer(seq(1000, 2e5, length.out = n_genes))
-  )
-  cd <- S4Vectors::DataFrame(sample_id = colnames(m), g = groups, row.names = colnames(m))
-  SummarizedExperiment::SummarizedExperiment(list(counts = m), rowData = rd, colData = cd)
-}
-
 test_that("expression QC counts library shares on all genes; ribosomal proteins must be protein-coding", {
   m <- matrix(c(50L, 30L, 10L, 10L, 0L, 0L, 70L, 20L, 5L, 5L), 5,
     dimnames = list(paste0("g", 1:5), c("s1", "s2"))

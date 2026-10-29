@@ -22,3 +22,4 @@
 ^\.pytest_cache$
 ^CLAUDE\.md$
 ^\.claude$
+__pycache__

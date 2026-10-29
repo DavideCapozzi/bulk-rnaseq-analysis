@@ -22,6 +22,10 @@ inputs:
     adapter: stringtie_gene_abundance
     files: "abundance/{input}_gene_abundance.tab"
     on_duplicate: sum
+  qc:
+    multiqc:
+      - {id: run, file: multiqc/multiqc_report.html, read: r1}
+    sample_aliases: {A1: lib_A1, A2: lib_A2, B1: lib_B1, B2: lib_B2}
 resources:
   cache_dir: ../../results/example_star_resources
   items:

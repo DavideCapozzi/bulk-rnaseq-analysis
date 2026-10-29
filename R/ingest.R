@@ -6,8 +6,9 @@
 #'
 #' @param cfg Config from [read_config()].
 #' @return `list(se, contrast_stats, qc, samples, report, provenance, resources, annotation,
-#'   normalization_check)`; absent levels are `NULL`. `normalization_check` (see [check_normalization()]) is
-#'   filled when both counts and provider-normalised values are configured.
+#'   normalization_check, multiqc)`; absent levels are `NULL`. `normalization_check` (see [check_normalization()]) is
+#'   filled when both counts and provider-normalised values are configured; `multiqc` (see [read_multiqc()]) when
+#'   `inputs.qc.multiqc` is.
 #' @examples
 #' \donttest{
 #' # see the quickstart in README.md for a complete example on the shipped fixtures
@@ -86,6 +87,14 @@ run_ingest <- function(cfg) {
     norm_check <- nc$table
     report <- c(report, nc$facts)
   }
+  multiqc <- NULL
+  if (!is.null(inp$qc$multiqc)) {
+    reports <- lapply(inp$qc$multiqc, function(r) list(id = r$id, file = input_path(cfg, r$file), read = r$read))
+    multiqc <- read_multiqc(reports, samples, inp$qc$sample_aliases %||% list())
+    qc <- rbind(qc, multiqc$qc)
+    provenance <- rbind(provenance, multiqc$provenance)
+    report$multiqc_adapter_position <- multiqc$adapter_positions
+  }
   ct <- NULL
   for (t in inp$contrast_tables %||% list()) {
     x <- read_de_table(input_path(cfg, t$file), t$id, t$adapter, t$sheet, t$columns, t$df_residual)
@@ -105,7 +114,7 @@ run_ingest <- function(cfg) {
   }
   list(
     se = se, contrast_stats = ct, qc = qc, samples = samples, report = report, provenance = provenance,
-    resources = res_paths, annotation = annotation, normalization_check = norm_check
+    resources = res_paths, annotation = annotation, normalization_check = norm_check, multiqc = multiqc
   )
 }
 
@@ -128,6 +137,7 @@ configured_input_files <- function(cfg, samples) {
   }
   if (!is.null(inp$normalized)) files <- c(files, input_path(cfg, inp$normalized$file))
   for (t in inp$contrast_tables %||% list()) files <- c(files, input_path(cfg, t$file))
+  for (r in inp$qc$multiqc %||% list()) files <- c(files, input_path(cfg, r$file))
   unname(files)
 }
 
@@ -189,6 +199,12 @@ write_ingest_outputs <- function(ing, out) {
   if (!is.null(ing$qc) && nrow(ing$qc) > 0) {
     written <- c(written, write_table(ing$qc, dir, "qc_metrics", list(description = "QC metrics (long).")))
     saveRDS(ing$qc, file.path(obj, "qc.rds"), version = 3)
+  }
+  if (!is.null(ing$multiqc)) {
+    mq <- file.path(dir, "multiqc")
+    dir.create(mq, showWarnings = FALSE)
+    file.copy(ing$multiqc$files, mq, overwrite = TRUE)
+    written <- c(written, file.path(mq, basename(ing$multiqc$files)))
   }
   if (!is.null(ing$normalization_check)) {
     written <- c(written, write_table(ing$normalization_check, dir, "normalization_check", list(

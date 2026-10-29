@@ -1,0 +1,28 @@
+list	gene_symbol	source
+fingerprint_genes	HLA-A	earlier analysis code, no citation recorded; rationale: HLA class I allele-specific mapping bias, GSTM1 common deletion, 17q21.31 H1/H2 haplotypes
+fingerprint_genes	HLA-B	earlier analysis code, no citation recorded; rationale: HLA class I allele-specific mapping bias, GSTM1 common deletion, 17q21.31 H1/H2 haplotypes
+fingerprint_genes	HLA-C	earlier analysis code, no citation recorded; rationale: HLA class I allele-specific mapping bias, GSTM1 common deletion, 17q21.31 H1/H2 haplotypes
+fingerprint_genes	GSTM1	earlier analysis code, no citation recorded; rationale: HLA class I allele-specific mapping bias, GSTM1 common deletion, 17q21.31 H1/H2 haplotypes
+fingerprint_genes	KANSL1-AS1	earlier analysis code, no citation recorded; rationale: HLA class I allele-specific mapping bias, GSTM1 common deletion, 17q21.31 H1/H2 haplotypes
+fingerprint_genes	LRRC37A	earlier analysis code, no citation recorded; rationale: HLA class I allele-specific mapping bias, GSTM1 common deletion, 17q21.31 H1/H2 haplotypes
+fingerprint_genes_extended	GSTT1	earlier analysis code, no citation recorded; rationale: common deletions or strong genotype effects on expression
+fingerprint_genes_extended	UGT2B17	earlier analysis code, no citation recorded; rationale: common deletions or strong genotype effects on expression
+fingerprint_genes_extended	ERAP2	earlier analysis code, no citation recorded; rationale: common deletions or strong genotype effects on expression
+fingerprint_genes_extended	CHI3L2	earlier analysis code, no citation recorded; rationale: common deletions or strong genotype effects on expression
+fingerprint_genes_extended	ZNF890P	earlier analysis code, no citation recorded; rationale: common deletions or strong genotype effects on expression
+fingerprint_genes_extended	PSPHP1	earlier analysis code, no citation recorded; rationale: common deletions or strong genotype effects on expression
+fingerprint_genes_extended	GSTM1	earlier analysis code, no citation recorded; rationale: common deletions or strong genotype effects on expression
+fingerprint_genes_extended	KANSL1-AS1	earlier analysis code, no citation recorded; rationale: common deletions or strong genotype effects on expression
+fingerprint_genes_extended	LRRC37A	earlier analysis code, no citation recorded; rationale: common deletions or strong genotype effects on expression
+pan_t	CD3E	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	CD3D	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	CD3G	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	CD2	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	CD5	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	CD6	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	LCK	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	ZAP70	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	CD247	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	ITK	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	CD28	earlier analysis code, no citation recorded; pan-T-cell markers
+pan_t	TRAT1	earlier analysis code, no citation recorded; pan-T-cell markers

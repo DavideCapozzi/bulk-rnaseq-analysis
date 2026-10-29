@@ -6,3 +6,4 @@ ea33014d5bc885640fa20fa90c863993  ./abundance/lib_B2_gene_abundance.tab
 5bec82523a9dbca8fa8a9e336b873972  ./counts/lib_A2_ReadsPerGene.out.tab
 fc17290e62cf09098b4be12360b2b916  ./counts/lib_B1_ReadsPerGene.out.tab
 729ae678e7968ec27d579099ae75fa1d  ./counts/lib_B2_ReadsPerGene.out.tab
+946cf63b83adda96db83585f0b465bae  ./multiqc/multiqc_report.html

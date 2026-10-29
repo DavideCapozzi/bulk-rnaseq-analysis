@@ -267,7 +267,10 @@ run_pca <- function(inputs, params, context) {
       pca_scores = list(description = paste0("PC scores, ", params$scores_ntop, " most variable genes.")),
       sample_correlations = list(description = paste0("Sample correlations, main gene filter (", main_sex, ").")),
       sample_distances = list(description = paste0("Euclidean distances on VST, main gene filter (", main_sex, ").")),
-      pc1_vs_qc = list(description = "PC1-3 scores (VST, all filtered genes) vs QC metrics; descriptive."),
+      pc1_vs_qc = list(
+        description = "PC1-3 scores (VST, all filtered genes) vs QC metrics; descriptive.", n_samples = ncol(se),
+        min_two_sided_p_spearman = 2 / factorial(ncol(se))
+      ),
       pc1_top_loadings = list(units = list(span_kb = "kb (gene start to end)"))
     ),
     figure_sizes = list(pca = c(11, 9), sample_correlation = c(6, 5), pc1_loading_vs_gene_span = c(7, 4.5))
