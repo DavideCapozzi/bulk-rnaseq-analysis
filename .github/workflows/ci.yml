@@ -1,6 +1,6 @@
 # Checks every push and pull request in the pinned toolkit environment (envs/*.explicit.txt, linux-64):
-# data guard, ruff, pytest, styler, lintr, testthat, R CMD check, and one synthetic workflow run per scenario,
-# repeated once to confirm that a second run reproduces every output byte for byte.
+# data guard, ruff, pytest, styler, lintr, roxygen output, testthat, R CMD check, and one synthetic workflow run
+# per scenario, repeated once to confirm that a second run reproduces every output byte for byte.
 name: ci
 
 on:
@@ -41,8 +41,15 @@ jobs:
       - name: styler and lintr
         run: |
           micromamba activate bulkrnaseq
-          Rscript tools/check_r.R style $(git ls-files 'R/*.R' 'tests/*.R')
-          Rscript tools/check_r.R lint $(git ls-files 'R/*.R' 'tests/*.R')
+          Rscript tools/check_r.R style $(git ls-files '*.R')
+          Rscript tools/check_r.R lint $(git ls-files '*.R')
+
+      - name: roxygen documentation up to date
+        run: |
+          micromamba activate bulkrnaseq
+          Rscript -e 'roxygen2::roxygenise()'
+          git diff --exit-code -- man NAMESPACE
+          test -z "$(git status --porcelain -- man NAMESPACE)"
 
       - name: testthat
         run: |
