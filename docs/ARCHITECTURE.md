@@ -1,7 +1,7 @@
 # Architecture
 
-Status: 0.x, partly implemented. Modules implemented: `qc`, `pca`, `contrasts`, `de_test`, `concordance`, `ora`,
-`volcano`, `pairing`, `power`; the others are registered and skipped with the reason "not implemented". Statements
+Status: 0.x, partly implemented. [`MODULES.md`](MODULES.md), generated from the registry and the schema, lists
+which modules are implemented; the others are registered and skipped with the reason "not implemented". Statements
 marked **[I]** are design intentions not yet implemented; everything else describes the code in this repository.
 
 `bulkrnaseq` is an R package plus a Snakemake workflow that turns the outputs of an RNA-seq provider
@@ -261,7 +261,9 @@ produce identical files (checked by the md5 comparison in CI).
 - Thresholds, priors, cutoffs, seeds, numbers of replicates and gene lists live in the config or in resource files.
 - Analysis variants (sensitivity analyses) are parameter lists, not code: e.g. `pca.sex_gene_variants`,
   `pca.symbol_exclusion_variants`, `pca.ntop`, `concordance.thresholds`.
-- [I] `docs/CONFIG.md` generated from the schema.
+- `docs/MODULES.md` is generated from the registry and the `modules` section of the schema
+  (`Rscript tools/make_modules_doc.R`; a test fails when it is out of date). [I] `docs/CONFIG.md` for the other
+  sections of the schema.
 
 ### 7.1 Projects and the launcher
 
@@ -309,9 +311,9 @@ from `PATH`; that folder is put first on `PATH`, so `Rscript` comes from the sam
 
 Adding a module = one exported function `run_<name>(inputs, params, context)` + its registry entry in
 `inst/modules.yaml` (levels, resources, conditions, outputs, figures, caveats) + a strict schema fragment under
-`modules.<name>` + tests on synthetic data that also call `expect_registry_outputs()`. Adding an adapter = one
-function returning a canonical object + its `enum` value in the schema + a fixture. The generic module rule and
-the wrapper need no change.
+`modules.<name>` + tests on synthetic data that also call `expect_registry_outputs()` + `docs/MODULES.md`
+regenerated. Adding an adapter = one function returning a canonical object + its `enum` value in the schema + a
+fixture. The generic module rule and the wrapper need no change.
 
 ## 9. Testing strategy
 

@@ -1,7 +1,7 @@
 Package: bulkrnaseq
 Type: Package
 Title: Reproducible Analysis of Bulk RNA-seq Provider Outputs
-Version: 0.1.0
+Version: 0.2.0
 Authors@R:
     person("Davide", "Capozzi", email = "capozzi.davide99@gmail.com", role = c("aut", "cre"))
 Description: Turns the outputs of an RNA-seq provider (gene counts, abundances,

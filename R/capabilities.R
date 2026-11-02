@@ -126,7 +126,7 @@ available_contrasts <- function(cfg, imported, status, samples) {
 }
 
 module_unmet <- function(m, cfg, provided, contrasts, samples, lv, gene_lists) {
-  if (!exists(m[["function"]], envir = asNamespace("bulkrnaseq"), inherits = FALSE)) {
+  if (!module_implemented(m)) {
     return(paste0("not implemented in bulkrnaseq ", utils::packageVersion("bulkrnaseq"), " (", m[["function"]], ")"))
   }
   req <- unlist(m[["requires"]])

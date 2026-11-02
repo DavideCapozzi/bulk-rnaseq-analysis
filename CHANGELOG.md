@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-29
+
 ### Added
 
 - `qc` module: expression QC per sample on all genes (library size, detected genes, shares of mitochondrial,
@@ -72,8 +74,13 @@ All notable changes to this project are documented here. The format follows
 - Modules may return `figure_sizes`; the ingest QC table is passed to modules as `inputs$qc`.
 - `bulkrnaseq plan` and `run` stop before any analysis when an input file is missing, listing the paths.
 - When a step fails, `bulkrnaseq run` prints the last lines of its log (the R error) after Snakemake's report.
-- README, this changelog and a CI workflow (data guard, ruff, pytest, styler, lintr, testthat, R CMD check,
-  synthetic scenarios run twice with an md5 comparison).
+- README, this changelog and a CI workflow (data guard, ruff, pytest, styler, lintr, roxygen output, testthat,
+  R CMD check, synthetic scenarios run twice with an md5 comparison).
+- `docs/MODULES.md`: every module with its status, data levels, resources, conditions, outputs, caveats and
+  parameters (type, default, description), generated from `inst/modules.yaml` and the config schema by
+  `tools/make_modules_doc.R`; a test fails when the committed file is out of date.
+- README: one section per example scenario (what it shows, what is skipped and why); a test checks that the
+  modules listed for each scenario are those that `plan` resolves.
 
 ### Changed
 
@@ -133,6 +140,9 @@ All notable changes to this project are documented here. The format follows
 - `concordance` failed when contrasts from several producers (e.g. `contrasts` and `de_test`) were present: a
   pair is now evaluated for every method that estimates both of its contrasts, and fails only when no method
   covers both.
+- `tools/check_r.R lint` (pre-commit and CI) resolved the package's internal functions through the installed
+  package, so its result depended on whether and which version was installed; in CI, where linting runs before
+  the installation, it failed on every push. It now loads the package from the source first.
 
 ## [0.1.0] - 2026-10-21
 
