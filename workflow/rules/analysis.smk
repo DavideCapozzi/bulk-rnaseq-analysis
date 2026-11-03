@@ -29,7 +29,7 @@ rule module:
     log:
         os.path.join(OUT, "{moddir}", "logs", "module.log"),
     wildcard_constraints:
-        moddir=r"(0[2-9]|1[0-9])_[a-z_]+",
+        moddir=r"(0[2-9]|[1-9][0-9])_[a-z_]+",
     params:
         module=lambda wildcards: wildcards.moddir[3:],
     shell:

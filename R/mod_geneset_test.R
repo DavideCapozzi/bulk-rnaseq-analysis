@@ -40,12 +40,10 @@ run_geneset_test <- function(inputs, params, context) {
   params <- with_defaults(params, c("modules", "geneset_test"))
   ct <- inputs$contrast_stats
   if (is.null(ct) || nrow(ct) == 0) abort("geneset_test: no contrast tables")
-  est <- params$estimator %||% unique(ct$method)[[1]]
-  if (!est %in% ct$method) {
-    abort("geneset_test: estimator '", est, "' not among the contrast tables' methods: ", toString(unique(ct$method)))
-  }
-  ct <- ct[ct$method == est, , drop = FALSE]
-  contrasts <- geneset_contrast_order(unlist(params$contrasts), ct, context$cfg)
+  sel <- select_contrasts(ct, params$estimator, unlist(params$contrasts), context$cfg, "geneset_test")
+  est <- sel$estimator
+  ct <- sel$ct
+  contrasts <- sel$contrasts
   id_type <- context$cfg$annotation$id_type %||% "ensembl_gene_id"
   if (!id_type %in% c("ensembl_gene_id", "gene_symbol")) {
     abort("geneset_test: needs Ensembl gene IDs or gene symbols as feature IDs (annotation.id_type is ", id_type, ")")
@@ -184,19 +182,6 @@ run_geneset_test <- function(inputs, params, context) {
       )
     )
   )
-}
-
-# Contrast ids to test: the configured list (all must exist), else every contrast of the estimator in config order
-# followed by contrasts absent from the config (imported) in table order.
-geneset_contrast_order <- function(wanted, ct, cfg) {
-  avail <- unique(ct$contrast_id)
-  if (length(wanted) > 0) {
-    missing <- setdiff(wanted, avail)
-    if (length(missing) > 0) abort("geneset_test: contrast(s) without estimates: ", toString(missing))
-    return(wanted)
-  }
-  cfg_ids <- vapply(cfg$contrasts %||% list(), `[[`, "", "id")
-  c(intersect(cfg_ids, avail), setdiff(avail, cfg_ids))
 }
 
 # Members of the configured collections: data.frame(set_id, member, collection). A set may belong to one

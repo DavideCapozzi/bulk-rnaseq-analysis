@@ -4,7 +4,7 @@
 
 Every module declares the data levels it needs. A module whose needs are not met, or that is not implemented yet, is skipped with the reason in `00_provenance/capabilities.json` and `report/summary.md`. Defaults come from the config schema; `bulkrnaseq plan <config>` shows what a project runs.
 
-18 modules: 12 implemented, 6 not implemented.
+19 modules: 13 implemented, 6 not implemented.
 
 | NN | Module | Status | Data levels | Provides |
 |---|---|---|---|---|
@@ -26,6 +26,7 @@ Every module declares the data levels it needs. A module whose needs are not met
 | 17 | [`power`](#17-power) | implemented | `counts` | none |
 | 18 | [`coverage`](#18-coverage) | not implemented | `coverage` | none |
 | 19 | [`covariates`](#19-covariates) | not implemented | `contrast_stats` | none |
+| 20 | [`reference_axis`](#20-reference_axis) | implemented | `contrast_stats` | none |
 
 Schema types used below:
 
@@ -601,3 +602,45 @@ Parameters (`modules.covariates`; draft, not read by any code yet):
 | `enabled` | boolean | `true` |  |
 | `spline_df` | integer | `4` |  |
 | `strata` | array of string | `["ge_median","ge_q75","all"]` |  |
+
+## 20 reference_axis
+
+Status: implemented (`run_reference_axis`). Output folder: `20_reference_axis/`.
+
+- Data levels: `contrast_stats`
+- Optional levels: `counts`, `gene_mask`, `gene_universe`
+- Resources: none
+- Conditions: `configured: axes, gene_sets.sets, sign_test.threshold`
+- Provides: none
+- Tables: `reference_axis`, `axis_genes`
+- Figures: none
+
+Caveats:
+
+- Axes come from external references (other platforms and tissues): correlations with them are descriptive.
+- The binomial p-value of the sign test treats genes as independent, which they are not: conditional_on_contrast and descriptive.
+
+Parameters (`modules.reference_axis`):
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | boolean | `true` |  |
+| `estimator` | string or null | `null` | Method of the contrast tables whose log2 fold changes are used (null: the first method available). |
+| `contrasts` | array of string | `[]` | Contrast ids, in this order (empty = every contrast of the estimator, config order). |
+| `subset` | string | `"all"` | Genes (subset expression over the genes of the contrast tables) of the axis correlations, the sign test and the axis-high and axis-low genes of the sample scores. |
+| `set_subset` | string | `"all"` | Genes of the mean fold change per gene set. |
+| `axes` | array of object | `[]` | Reference axes: log2((mean numerator + pseudocount) / (mean denominator + pseudocount)) of the cell types of an HPA export, per gene. |
+| `axes[].id` | string |  |  |
+| `axes[].resource` | string |  | Key of an hpa_immune_cell or hpa_single_cell export. |
+| `axes[].numerator` | array of string |  |  |
+| `axes[].denominator` | array of string |  |  |
+| `axes[].pseudocount` | number | `1` |  |
+| `axes[].threshold` | number | `1` | Genes with axis >= threshold (high) and <= -threshold (low) define the sample scores. |
+| `gene_sets` | object | `{}` |  |
+| `gene_sets.resource` | string or null | `null` | Key of an msigdb_export in resources.items. |
+| `gene_sets.sets` | array of string | `[]` | Sets whose mean fold change is reported. |
+| `sign_test` | object | `{}` |  |
+| `sign_test.threshold` | number or null | `null` | \|log2 fold change\| that both contrasts of each contrast pair must exceed; the fraction with the same sign gets a two-sided binomial p-value (descriptive: genes are not independent). null: no test. |
+| `sample_scores` | boolean | `true` | Per-sample axis scores (needs counts). |
+| `prior_count` | number | `2` |  |
+| `norm_method` | string (TMM, RLE, upperquartile, none) | `"TMM"` |  |

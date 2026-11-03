@@ -775,6 +775,70 @@ properties:
           enabled: {type: boolean, default: true}
           spline_df: {type: integer, default: 4}
           strata: {type: array, items: {type: string}, default: [ge_median, ge_q75, all]}
+      reference_axis:
+        type: object
+        additionalProperties: false
+        default: {}
+        properties:
+          enabled: {type: boolean, default: true}
+          estimator:
+            type: [string, "null"]
+            default: null
+            description: "Method of the contrast tables whose log2 fold changes are used (null: the first method available)."
+          contrasts:
+            type: array
+            items: {type: string}
+            default: []
+            description: Contrast ids, in this order (empty = every contrast of the estimator, config order).
+          subset:
+            type: string
+            default: all
+            description: >-
+              Genes (subset expression over the genes of the contrast tables) of the axis correlations, the sign
+              test and the axis-high and axis-low genes of the sample scores.
+          set_subset: {type: string, default: all, description: Genes of the mean fold change per gene set.}
+          axes:
+            type: array
+            default: []
+            description: >-
+              Reference axes: log2((mean numerator + pseudocount) / (mean denominator + pseudocount)) of the cell
+              types of an HPA export, per gene.
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, resource, numerator, denominator]
+              properties:
+                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                resource: {type: string, description: Key of an hpa_immune_cell or hpa_single_cell export.}
+                numerator: {type: array, minItems: 1, items: {type: string}}
+                denominator: {type: array, minItems: 1, items: {type: string}}
+                pseudocount: {type: number, minimum: 0, default: 1}
+                threshold:
+                  type: number
+                  exclusiveMinimum: 0
+                  default: 1
+                  description: Genes with axis >= threshold (high) and <= -threshold (low) define the sample scores.
+          gene_sets:
+            type: object
+            additionalProperties: false
+            default: {}
+            properties:
+              resource: {type: [string, "null"], default: null, description: Key of an msigdb_export in resources.items.}
+              sets: {type: array, items: {type: string}, default: [], description: Sets whose mean fold change is reported.}
+          sign_test:
+            type: object
+            additionalProperties: false
+            default: {}
+            properties:
+              threshold:
+                type: [number, "null"]
+                default: null
+                description: >-
+                  |log2 fold change| that both contrasts of each contrast pair must exceed; the fraction with the same
+                  sign gets a two-sided binomial p-value (descriptive: genes are not independent). null: no test.
+          sample_scores: {type: boolean, default: true, description: Per-sample axis scores (needs counts).}
+          prior_count: {type: number, default: 2}
+          norm_method: {type: string, enum: [TMM, RLE, upperquartile, none], default: TMM}
 
   export:
     type: object

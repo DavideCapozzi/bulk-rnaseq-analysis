@@ -8,6 +8,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `reference_axis` module (20): descriptive measures of the fold changes of one estimator against reference axes
+  (`log2` ratio of HPA cell types, e.g. T-reg over naive or memory CD4 T cells): Spearman correlation per axis
+  and contrast, mean fold change per gene set, sign agreement of each contrast pair above a threshold with a
+  two-sided binomial p-value (`conditional_on_contrast`), per-sample axis scores (log CPM of axis-high minus
+  axis-low genes) and their shift per contrast. Tables `reference_axis` and `axis_genes`. The workflow accepts
+  module numbers up to 99.
+
 - `geneset_test` module: pre-ranked fgsea and `limma::cameraPR` (for each `inter_gene_cor` and `use_ranks`) on
   the log2 fold changes of one estimator (`estimator`), for collections of an MSigDB export selected by
   collection, subcollection and a set-name pattern, in one or more gene universes (subset expressions over

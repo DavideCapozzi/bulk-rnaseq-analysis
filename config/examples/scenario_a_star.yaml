@@ -80,5 +80,11 @@ modules:
     universes:
       - {id: all, subset: all}
       - {id: reference_universe, subset: in_reference_universe+no_masked}
+  reference_axis:
+    subset: in_reference_universe+no_masked
+    axes:
+      - {id: treg_vs_naive_cd4, resource: hpa_immune_cell, numerator: [T-reg], denominator: [naive CD4 T-cell]}
+    gene_sets: {resource: gene_sets, sets: [SYNTHETIC_SET_01, SYNTHETIC_SET_02]}
+    sign_test: {threshold: 0.58}
 export:
   xlsx: true

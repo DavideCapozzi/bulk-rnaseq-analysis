@@ -176,6 +176,7 @@ they never fail the run silently or abort it.
 | 17 | `power` | R | — | — | — | — | — | — | a design with df ≥ 1 (BCV and its per-gene interval); Hart grid; optional gene flags (`universes`) |
 | 18 | `coverage` | — | — | — | — | — | R | — | annotation exons |
 | 19 | `covariates` | — | — | — | R | — | — | — | annotation exons, transcript FASTA |
+| 20 | `reference_axis` | o | — | — | R | — | — | — | HPA exports (`axes[].resource`), MSigDB export (`gene_sets.resource`); optional gene flags (`subset`); contrast pairs for the sign test; sample scores need counts |
 
 Example (scenario c, a DESeq2 and a NOISeq table): `contrast_stats` and `ranked` are available; `geneset_test`,
 `ora` and `volcano` run; `concordance` would run with a contrast pair; `qc`, `pca`, `contrasts` and `de_test` are

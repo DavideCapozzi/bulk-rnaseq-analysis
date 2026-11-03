@@ -43,7 +43,7 @@ Three example configs in [`config/examples/`](config/examples/) run on small syn
 
 | Config | Inputs | Modules that run |
 |---|---|---|
-| `scenario_a_star.yaml` | STAR counts, StringTie abundances, a MultiQC report | `qc`, `pca`, `contamination`, `reference`, `contrasts`, `de_test`, `concordance`, `geneset_test`, `volcano`, `pairing`, `power` |
+| `scenario_a_star.yaml` | STAR counts, StringTie abundances, a MultiQC report | `qc`, `pca`, `contamination`, `reference`, `contrasts`, `de_test`, `concordance`, `geneset_test`, `volcano`, `pairing`, `power`, `reference_axis` |
 | `scenario_b_excel.yaml` | raw and normalised counts in Excel | `qc`, `pca`, `de_test`, `geneset_test`, `volcano`, `pairing`, `power` |
 | `scenario_c_de_only.yaml` | a DESeq2 and a NOISeq table only | `geneset_test`, `ora`, `volcano` |
 
@@ -74,6 +74,8 @@ and nowhere else. The config shows most of the toolkit on one project:
 - `geneset_test` runs cameraPR and fgsea on synthetic gene sets for each contrast and lists the sets significant
   in both contrasts of a pair; fgsea p-values carry `inference_scope = ranking_only` (genes are permuted, not
   samples);
+- `reference_axis` correlates the fold changes with an axis built from two synthetic HPA cell types, averages them
+  over two gene sets, tests the sign agreement of the contrast pair and scores each sample on the axis;
 - `ora` is skipped: the config has no `kegg_pathways` resource.
 
 ### Scenario b: count matrices in Excel

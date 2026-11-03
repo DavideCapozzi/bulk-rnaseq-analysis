@@ -57,6 +57,27 @@ contrast_gene_table <- function(ct, features = NULL, flags = NULL) {
   merge_gene_flags(genes, flags)
 }
 
+# Rows of one estimator (`estimator`, or the first method of the table) and the contrast ids to use: the requested
+# ones (all must have estimates), else every contrast of the estimator in config order followed by contrasts absent
+# from the config (imported) in table order. Returns list(ct, estimator, contrasts).
+select_contrasts <- function(ct, estimator, wanted, cfg, what) {
+  est <- estimator %||% unique(ct$method)[[1]]
+  if (!est %in% ct$method) {
+    abort(what, ": estimator '", est, "' not among the contrast tables' methods: ", toString(unique(ct$method)))
+  }
+  ct <- ct[ct$method == est, , drop = FALSE]
+  avail <- unique(ct$contrast_id)
+  if (length(wanted) > 0) {
+    missing <- setdiff(wanted, avail)
+    if (length(missing) > 0) abort(what, ": contrast(s) without estimates: ", toString(missing))
+    contrasts <- wanted
+  } else {
+    cfg_ids <- vapply(cfg$contrasts %||% list(), `[[`, "", "id")
+    contrasts <- c(intersect(cfg_ids, avail), setdiff(avail, cfg_ids))
+  }
+  list(ct = ct, estimator = est, contrasts = contrasts)
+}
+
 # Samples behind each contrast the toolkit computed: both sides of a configured contrast, and every sample of the
 # fit for a de_test design. Imported contrasts are absent (unknown).
 contrast_sample_sets <- function(cfg, se) {

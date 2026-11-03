@@ -286,3 +286,18 @@ modules:
     figures: []
     caveats:
       - "Regressing lfc on length, GC and expression also removes biology correlated with them."
+
+  reference_axis:
+    number: 20
+    function: run_reference_axis
+    requires: [contrast_stats]
+    optional: [counts, gene_mask, gene_universe]
+    resources: []
+    conditions: [{configured: [axes, gene_sets.sets, sign_test.threshold]}]
+    provides: []
+    params: modules.reference_axis
+    outputs: [reference_axis, axis_genes]
+    figures: []
+    caveats:
+      - "Axes come from external references (other platforms and tissues): correlations with them are descriptive."
+      - "The binomial p-value of the sign test treats genes as independent, which they are not: conditional_on_contrast and descriptive."
