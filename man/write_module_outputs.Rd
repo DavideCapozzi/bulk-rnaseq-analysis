@@ -32,7 +32,9 @@ Character vector of written files, invisibly.
 \description{
 Writes every table (with meta), every figure, and optionally the module's Excel workbook. A table with a
 p-value column (\code{pvalue}, \code{padj}, \code{p.adjust}, \code{qvalue}) must have an \code{inference_scope} column, which is also
-copied into the workbook's \code{Info} sheet.
+copied into the workbook's \code{Info} sheet. Its values are \code{"sample"} (the units of the test are samples),
+\code{"conditional_on_contrast"} (gene-level test on a given contrast), \code{"ranking_only"} (gene permutations, e.g.
+fgsea: the p-values only rank sets within one contrast) or \code{NA} on rows without a p-value.
 }
 \examples{
 res <- list(tables = list(t1 = data.frame(a = 1)), figures = list(), meta = list())

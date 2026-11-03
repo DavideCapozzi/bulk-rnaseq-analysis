@@ -168,7 +168,7 @@ they never fail the run silently or abort it.
 | 09 | `contrasts` | R | — | — | — | — | — | — | contrasts in config; provides `contrast_stats`, `ranked`; optional gene flags (`spread_subsets`) |
 | 10 | `de_test` | R | — | — | — | — | — | — | design with df ≥ 1 (`assert_df`); provides `contrast_stats` |
 | 11 | `concordance` | o | — | — | R | — | — | — | ≥ 2 contrasts and ≥ 1 contrast pair; power simulation needs `counts`; optional gene flags (`subsets`) |
-| 12 | `geneset_test` | — | — | — | — | R | — | — | gene sets |
+| 12 | `geneset_test` | — | — | — | — | R | — | — | MSigDB export (`resource`); optional gene flags (`universes`); contrast pairs for set concordance |
 | 13 | `ora` | — | — | — | R | — | — | — | OrgDb, GO/Reactome packages, KEGG table in cache |
 | 14 | `volcano` | — | — | — | R | — | — | — | — |
 | 15 | `signatures` | R | — | — | — | — | — | — | gene sets |
@@ -177,9 +177,9 @@ they never fail the run silently or abort it.
 | 18 | `coverage` | — | — | — | — | — | R | — | annotation exons |
 | 19 | `covariates` | — | — | — | R | — | — | — | annotation exons, transcript FASTA |
 
-Example (scenario c, a DESeq2 and a NOISeq table): `contrast_stats` and `ranked` are available; `ora` and
-`volcano` run; `concordance` would run with a contrast pair; `qc`, `pca`, `contrasts` and `de_test` are skipped
-because there are no counts, and modules not yet implemented say so.
+Example (scenario c, a DESeq2 and a NOISeq table): `contrast_stats` and `ranked` are available; `geneset_test`,
+`ora` and `volcano` run; `concordance` would run with a contrast pair; `qc`, `pca`, `contrasts` and `de_test` are
+skipped because there are no counts, and modules not yet implemented say so.
 
 ## 4. Statistical guardrails (in code)
 
@@ -191,13 +191,13 @@ because there are no counts, and modules not yet implemented say so.
 - **Inference scope as a column.** Every output table that contains a p-value has a column `inference_scope`
   (also written to the `Info` sheet of the Excel export and to `.meta.json`):
   `sample` — a test whose units are samples (DESeq2/edgeR on a design with df ≥ 1);
-  `conditional_on_contrast` — a test whose units are genes for one given contrast (cameraPR, fgsea, ORA, binomial
+  `conditional_on_contrast` — a test whose units are genes for one given contrast (cameraPR, ORA, binomial
   sign tests). cameraPR accounts for inter-gene correlation but still tests genes for a given contrast, not
-  samples, so on a contrast between single libraries it stays `conditional_on_contrast`.
-- **Gene-permutation tests [I]** (module `geneset_test`). Adjusted p-values of pre-ranked fgsea will be labelled
-  `ranking_only`: they order sets within a contrast and are not used to select sets downstream.
+  samples, so on a contrast between single libraries it stays `conditional_on_contrast`;
+  `ranking_only` — gene-permutation tests (pre-ranked fgsea in `geneset_test`): the p-values order sets within a
+  contrast and are not used to select sets downstream.
 - **Enforced by the writer**: `write_module_outputs()` refuses a table with a p-value column (`pvalue`, `padj`,
-  `p.adjust`, `qvalue`) and no `inference_scope` column.
+  `p.adjust`, `qvalue`) and no `inference_scope` column, and any `inference_scope` value other than these three.
 - **Randomness.** Every function with a random step takes `seed`, runs inside `withr::with_seed()`, and
   writes `seed` and `resampling_unit` (e.g. `genes`, `reads (binomial thinning)`) to the metadata.
 - **Imported DE tables are not recomputed.** Thresholds (`padj`, `|fold change|`, posterior probability) come

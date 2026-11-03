@@ -4,7 +4,7 @@
 
 Every module declares the data levels it needs. A module whose needs are not met, or that is not implemented yet, is skipped with the reason in `00_provenance/capabilities.json` and `report/summary.md`. Defaults come from the config schema; `bulkrnaseq plan <config>` shows what a project runs.
 
-18 modules: 11 implemented, 7 not implemented.
+18 modules: 12 implemented, 6 not implemented.
 
 | NN | Module | Status | Data levels | Provides |
 |---|---|---|---|---|
@@ -18,7 +18,7 @@ Every module declares the data levels it needs. A module whose needs are not met
 | 09 | [`contrasts`](#09-contrasts) | implemented | `counts` | `contrast_stats`, `ranked` |
 | 10 | [`de_test`](#10-de_test) | implemented | `counts` | `contrast_stats`, `ranked` |
 | 11 | [`concordance`](#11-concordance) | implemented | `contrast_stats` | none |
-| 12 | [`geneset_test`](#12-geneset_test) | not implemented | `ranked` | none |
+| 12 | [`geneset_test`](#12-geneset_test) | implemented | `ranked` | none |
 | 13 | [`ora`](#13-ora) | implemented | `contrast_stats` | none |
 | 14 | [`volcano`](#14-volcano) | implemented | `contrast_stats` | none |
 | 15 | [`signatures`](#15-signatures) | not implemented | `counts` | none |
@@ -352,35 +352,50 @@ Parameters (`modules.concordance`):
 
 ## 12 geneset_test
 
-Status: not implemented (`run_geneset_test`). Output folder: `12_geneset_test/`.
+Status: implemented (`run_geneset_test`). Output folder: `12_geneset_test/`.
 
 - Data levels: `ranked`
-- Optional levels: none
-- Resources: `gene_sets`
+- Optional levels: `gene_mask`, `gene_universe`
+- Resources: none
 - Conditions: none
 - Provides: none
-- Tables: `geneset_results`, `geneset_concordance`, `geneset_concordant_sets`
-- Figures: `nes_concordance`, `hallmark_heatmap`
+- Tables: `geneset_results`, `geneset_method_comparison`, `geneset_concordance`, `geneset_concordant_sets`
+- Figures: `nes_concordance`, `nes_heatmap`
 
 Caveats:
 
-- fgsea pre-ranked permutes genes: p-values are ranking_only.
+- fgsea pre-ranked permutes genes, not samples: its p-values only rank sets within one contrast (inference_scope ranking_only).
 - cameraPR accounts for inter-gene correlation but still tests genes for a given contrast, not samples: with one library per condition it is conditional_on_contrast.
 
-Parameters (`modules.geneset_test`; draft, not read by any code yet):
+Parameters (`modules.geneset_test`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `enabled` | boolean | `true` |  |
+| `resource` | string | `"gene_sets"` | Key of an msigdb_export in resources.items. |
+| `estimator` | string or null | `null` | Method of the contrast tables whose log2 fold changes rank the genes (e.g. logcpm_difference); null: the first method available. |
+| `contrasts` | array of string | `[]` | Contrast ids to test, in this order (empty = every contrast of the estimator, config order). |
 | `methods` | array of string (camera_pr, fgsea) | `"camera_pr"` |  |
-| `collections` | array of string | `"H"` |  |
+| `collections` | array of object | `[{"id":"H","collection":"H"}]` | Gene set collections of the export: gs_collection, optional gs_subcollection and a regular expression on gs_name. P-values are adjusted over all collections together. |
+| `collections[].id` | string |  |  |
+| `collections[].collection` | string |  |  |
+| `collections[].subcollection` | string or null | `null` |  |
+| `collections[].set_pattern` | string or null | `null` |  |
+| `universes` | array of object | `[{"id":"all","subset":"all"}]` | Ranked genes, as subset expressions over the genes of the contrast tables; tested in this order. |
+| `universes[].id` | string |  |  |
+| `universes[].subset` | string |  |  |
 | `min_size` | integer | `15` |  |
 | `max_size` | integer | `500` |  |
-| `inter_gene_cor` | array of number | `0.01` |  |
-| `use_ranks` | array of boolean | `false` |  |
-| `fgsea_tie_jitter_sd` | number | `1e-06` |  |
-| `universes` | array of string | `"all"` |  |
+| `inter_gene_cor` | array of number | `0.01` | cameraPR variants. |
+| `use_ranks` | array of boolean | `false` | cameraPR variants. |
+| `fgsea_tie_jitter_sd` | number | `1e-06` | SD of the normal noise added to the ranking statistic before fgsea, to break ties reproducibly (0: none). Genes are ordered by decreasing expression, then feature_id, before the draw. |
+| `seed` | integer or null | `null` | Seed set once before fgsea (universes outer, contrasts inner, on one random stream); null: project.seed. |
+| `leading_edge_max` | integer | `15` | Leading-edge symbols reported per set. |
 | `alpha` | number | `0.05` |  |
+| `concordance_collections` | array of string | `[]` | Collection ids summarised in geneset_concordance (empty = all). |
+| `figure_universe` | string or null | `null` | Universe of nes_concordance (null: the first). |
+| `figure_collections` | array of string | `[]` | Collection ids drawn in nes_concordance (empty = all). |
+| `heatmap_collection` | string or null | `null` | Collection of nes_heatmap (null: the first). |
 
 ## 13 ora
 

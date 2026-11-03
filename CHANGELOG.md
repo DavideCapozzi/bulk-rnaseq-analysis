@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `geneset_test` module: pre-ranked fgsea and `limma::cameraPR` (for each `inter_gene_cor` and `use_ranks`) on
+  the log2 fold changes of one estimator (`estimator`), for collections of an MSigDB export selected by
+  collection, subcollection and a set-name pattern, in one or more gene universes (subset expressions over
+  gene flags). P-values are BH-adjusted over all collections per method variant, universe and contrast. fgsea runs
+  on one random stream (`seed`, default `project.seed`) after ordering genes by decreasing expression, then
+  `feature_id`, and adding tie-breaking noise (`fgsea_tie_jitter_sd`). Tables `geneset_results`,
+  `geneset_method_comparison`, and per contrast pair `geneset_concordance` (sets tested, NES correlation, sets
+  significant in both contrasts with the same direction) and `geneset_concordant_sets`; figures
+  `nes_concordance` and `nes_heatmap`.
+- `inference_scope = ranking_only` for gene-permutation p-values (fgsea); `write_module_outputs()` now refuses
+  any `inference_scope` value other than `sample`, `conditional_on_contrast` and `ranking_only`.
+
+### Changed
+
+- Schema of `modules.geneset_test` (not implemented before): `collections` are objects (`id`, `collection`,
+  `subcollection`, `set_pattern`) instead of names, `universes` are `{id, subset}` as in `power`; new `resource`,
+  `estimator`, `contrasts`, `seed`, `leading_edge_max`, `concordance_collections` and figure parameters. The
+  section is now strict. The registry figure `hallmark_heatmap` is now `nes_heatmap` (any collection).
+
 ## [0.2.0] - 2026-10-29
 
 ### Added

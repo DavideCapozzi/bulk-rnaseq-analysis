@@ -556,18 +556,81 @@ properties:
           subsets: {type: array, items: {type: string}, default: [all]}
       geneset_test:
         type: object
+        additionalProperties: false
         default: {}
         properties:
           enabled: {type: boolean, default: true}
+          resource: {type: string, default: gene_sets, description: Key of an msigdb_export in resources.items.}
+          estimator:
+            type: [string, "null"]
+            default: null
+            description: >-
+              Method of the contrast tables whose log2 fold changes rank the genes (e.g. logcpm_difference); null: the
+              first method available.
+          contrasts:
+            type: array
+            items: {type: string}
+            default: []
+            description: Contrast ids to test, in this order (empty = every contrast of the estimator, config order).
           methods: {type: array, items: {type: string, enum: [camera_pr, fgsea]}, default: [camera_pr]}
-          collections: {type: array, items: {type: string}, default: [H]}
-          min_size: {type: integer, default: 15}
-          max_size: {type: integer, default: 500}
-          inter_gene_cor: {type: array, items: {type: number}, default: [0.01]}
-          use_ranks: {type: array, items: {type: boolean}, default: [false]}
-          fgsea_tie_jitter_sd: {type: number, default: 1.0e-6}
-          universes: {type: array, items: {type: string}, default: [all]}
+          collections:
+            type: array
+            minItems: 1
+            default: [{id: H, collection: H}]
+            description: >-
+              Gene set collections of the export: gs_collection, optional gs_subcollection and a regular expression
+              on gs_name. P-values are adjusted over all collections together.
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, collection]
+              properties:
+                id: {type: string, pattern: "^[A-Za-z0-9_]+$"}
+                collection: {type: string}
+                subcollection: {type: [string, "null"], default: null}
+                set_pattern: {type: [string, "null"], default: null}
+          universes:
+            type: array
+            minItems: 1
+            default: [{id: all, subset: all}]
+            description: Ranked genes, as subset expressions over the genes of the contrast tables; tested in this order.
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, subset]
+              properties:
+                id: {type: string, pattern: "^[A-Za-z0-9_]+$"}
+                subset: {type: string}
+          min_size: {type: integer, minimum: 1, default: 15}
+          max_size: {type: integer, minimum: 1, default: 500}
+          inter_gene_cor: {type: array, items: {type: number}, default: [0.01], description: cameraPR variants.}
+          use_ranks: {type: array, items: {type: boolean}, default: [false], description: cameraPR variants.}
+          fgsea_tie_jitter_sd:
+            type: number
+            minimum: 0
+            default: 1.0e-6
+            description: >-
+              SD of the normal noise added to the ranking statistic before fgsea, to break ties reproducibly
+              (0: none). Genes are ordered by decreasing expression, then feature_id, before the draw.
+          seed:
+            type: [integer, "null"]
+            default: null
+            description: >-
+              Seed set once before fgsea (universes outer, contrasts inner, on one random stream); null: project.seed.
+          leading_edge_max: {type: integer, minimum: 0, default: 15, description: Leading-edge symbols reported per set.}
           alpha: {type: number, default: 0.05}
+          concordance_collections:
+            type: array
+            items: {type: string}
+            default: []
+            description: Collection ids summarised in geneset_concordance (empty = all).
+          figure_universe: {type: [string, "null"], default: null, description: "Universe of nes_concordance (null: the first)."}
+          figure_collections:
+            type: array
+            items: {type: string}
+            default: []
+            description: Collection ids drawn in nes_concordance (empty = all).
+          heatmap_collection: {type: [string, "null"], default: null, description: "Collection of nes_heatmap (null: the first)."}
       ora:
         type: object
         default: {}

@@ -39,8 +39,10 @@ Imports:
 Suggests:
     AnnotationDbi,
     apeglm,
+    BiocParallel,
     clusterProfiler,
     covr,
+    fgsea,
     KEGGREST,
     limma,
     org.Hs.eg.db,

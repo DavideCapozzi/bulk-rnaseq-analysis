@@ -142,11 +142,16 @@ normalise_zip <- function(src, dest, fixed_time = "2000-01-01T00:00:00Z") {
   invisible(dest)
 }
 
+# Allowed values of the inference_scope column of module tables (see write_module_outputs()).
+inference_scopes <- c("sample", "conditional_on_contrast", "ranking_only")
+
 #' Write a module's outputs
 #'
 #' Writes every table (with meta), every figure, and optionally the module's Excel workbook. A table with a
 #' p-value column (`pvalue`, `padj`, `p.adjust`, `qvalue`) must have an `inference_scope` column, which is also
-#' copied into the workbook's `Info` sheet.
+#' copied into the workbook's `Info` sheet. Its values are `"sample"` (the units of the test are samples),
+#' `"conditional_on_contrast"` (gene-level test on a given contrast), `"ranking_only"` (gene permutations, e.g.
+#' fgsea: the p-values only rank sets within one contrast) or `NA` on rows without a p-value.
 #'
 #' @param result `list(tables, figures, meta)` returned by a module.
 #' @param dir `character(1)`. Module folder (`NN_<module>`).
@@ -165,6 +170,10 @@ write_module_outputs <- function(result, dir, params = list(), xlsx_path = NULL,
     p_cols <- intersect(c("pvalue", "padj", "p.adjust", "qvalue"), names(result$tables[[nm]]))
     if (length(p_cols) > 0 && !"inference_scope" %in% names(result$tables[[nm]])) {
       abort("table '", nm, "': p-value column(s) ", paste(p_cols, collapse = ", "), " without inference_scope")
+    }
+    if ("inference_scope" %in% names(result$tables[[nm]])) {
+      bad <- setdiff(stats::na.omit(result$tables[[nm]]$inference_scope), inference_scopes)
+      if (length(bad) > 0) abort("table '", nm, "': invalid inference_scope ", toString(unique(bad)))
     }
   }
   written <- character()

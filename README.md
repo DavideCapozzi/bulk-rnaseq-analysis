@@ -43,9 +43,9 @@ Three example configs in [`config/examples/`](config/examples/) run on small syn
 
 | Config | Inputs | Modules that run |
 |---|---|---|
-| `scenario_a_star.yaml` | STAR counts, StringTie abundances, a MultiQC report | `qc`, `pca`, `contamination`, `reference`, `contrasts`, `de_test`, `concordance`, `volcano`, `pairing`, `power` |
-| `scenario_b_excel.yaml` | raw and normalised counts in Excel | `qc`, `pca`, `de_test`, `volcano`, `pairing`, `power` |
-| `scenario_c_de_only.yaml` | a DESeq2 and a NOISeq table only | `ora`, `volcano` |
+| `scenario_a_star.yaml` | STAR counts, StringTie abundances, a MultiQC report | `qc`, `pca`, `contamination`, `reference`, `contrasts`, `de_test`, `concordance`, `geneset_test`, `volcano`, `pairing`, `power` |
+| `scenario_b_excel.yaml` | raw and normalised counts in Excel | `qc`, `pca`, `de_test`, `geneset_test`, `volcano`, `pairing`, `power` |
+| `scenario_c_de_only.yaml` | a DESeq2 and a NOISeq table only | `geneset_test`, `ora`, `volcano` |
 
 ```bash
 bin/bulkrnaseq plan  config/examples/scenario_b_excel.yaml   # what runs, what is skipped and why
@@ -71,6 +71,9 @@ and nowhere else. The config shows most of the toolkit on one project:
 - `contamination` builds a gene mask from synthetic gene sets and profiles, and `reference` a gene universe from
   synthetic HPA exports; `pca`, `contrasts`, `concordance` and `power` then repeat their analysis on gene subsets
   such as `no_masked` and `in_reference_universe+no_masked` (each table has a column naming the subset);
+- `geneset_test` runs cameraPR and fgsea on synthetic gene sets for each contrast and lists the sets significant
+  in both contrasts of a pair; fgsea p-values carry `inference_scope = ranking_only` (genes are permuted, not
+  samples);
 - `ora` is skipped: the config has no `kegg_pathways` resource.
 
 ### Scenario b: count matrices in Excel
@@ -79,13 +82,15 @@ Six samples (three donors, two conditions) as raw and provider-normalised count 
 IDs. At ingest, `01_ingest/normalization_check.tsv` checks whether DESeq2 median-of-ratios on a filtered gene set
 reproduces the provider's normalised counts. `de_test` fits an unpaired (`~ condition`) and a paired
 (`~ donor + condition`) design; `10_de_test/tables/design_summary.tsv` gives the residual degrees of freedom of
-each. Without `contrasts:`, `contrast_pairs:` or contamination and reference profiles in the config, those modules
+each. `geneset_test` ranks the genes by the fold changes of the first method of `de_test` (cameraPR, the
+default). Without `contrasts:`, `contrast_pairs:` or contamination and reference profiles in the config, those modules
 are skipped and `report/summary.md` says why.
 
 ### Scenario c: differential-expression tables only
 
 No counts: a DESeq2 workbook (`df_residual: 4`) and a NOISeq table without replicates (`df_residual: 0`). Every
-module that needs counts is skipped with the reason. `volcano` and `ora` (GO, KEGG, Reactome) run on both tables;
+module that needs counts is skipped with the reason. `volcano` and `ora` (GO, KEGG, Reactome) run on both tables,
+`geneset_test` on the DESeq2 one (the first method; `modules.geneset_test.estimator` chooses another);
 the NOISeq probabilities carry `inference_scope = conditional_on_contrast`, because with 0 residual degrees of
 freedom they say nothing about new samples.
 
