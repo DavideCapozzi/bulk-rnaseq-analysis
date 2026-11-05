@@ -1,7 +1,8 @@
 #' Gene set test module
 #'
-#' Tests gene set collections of an MSigDB export on the log2 fold changes of each contrast (one estimator), in
-#' one or more gene universes:
+#' Tests gene set collections of an MSigDB export on a ranking statistic of each contrast (one estimator): the
+#' log2 fold change (`ranking_statistic = "lfc"`) or the test statistic of DESeq2 tables (`"stat"`, the Wald
+#' statistic, which also weighs the precision of each estimate), in one or more gene universes:
 #' * `fgsea` (pre-ranked GSEA, multilevel, `eps = 0`, one worker): genes are ordered by decreasing expression, then
 #'   `feature_id`, normal noise of SD `fgsea_tie_jitter_sd` is added to break ties, and the seed is set once
 #'   before the loop (universes outer, contrasts inner). Gene permutations make its p-values a ranking of sets
@@ -62,13 +63,22 @@ run_geneset_test <- function(inputs, params, context) {
   if (anyDuplicated(uids)) abort("geneset_test: duplicated universe id(s): ", toString(unique(uids[duplicated(uids)])))
   universes <- lapply(params$universes, function(u) gene_subset(genes, u$subset, context$organism %||% "human"))
   names(universes) <- uids
-  # Ranking statistic of one contrast in one universe, in the gene order above (genes without lfc dropped).
+  # Ranking statistic of one contrast in one universe, in the gene order above (genes without a value dropped).
+  stat_col <- params$ranking_statistic
+  for (k in contrasts) {
+    if (!any(is.finite(ct[[stat_col]][ct$contrast_id == k]))) {
+      abort(
+        "geneset_test: contrast '", k, "' of estimator '", est, "' has no ", stat_col, " values (ranking_statistic: ",
+        stat_col, "); the 'stat' column comes from DESeq2 tables (imported or de_test)"
+      )
+    }
+  }
   ranked <- function(u, k) {
-    x <- ct[ct$contrast_id == k, c("feature_id", "lfc")]
+    x <- ct[ct$contrast_id == k, c("feature_id", stat_col)]
     keep <- universes[[u]]
-    lfc <- x$lfc[match(genes$feature_id[keep], x$feature_id)]
-    ok <- is.finite(lfc)
-    list(stat = stats::setNames(lfc[ok], genes$feature_id[keep][ok]), symbol = symbols[keep][ok])
+    v <- x[[stat_col]][match(genes$feature_id[keep], x$feature_id)]
+    ok <- is.finite(v)
+    list(stat = stats::setNames(v[ok], genes$feature_id[keep][ok]), symbol = symbols[keep][ok])
   }
   methods <- unlist(params$methods)
   seed <- params$seed %||% context$seed %||% 1
@@ -137,15 +147,17 @@ run_geneset_test <- function(inputs, params, context) {
     sizes$nes_heatmap <- c(4 + 1.5 * length(contrasts) * length(uids), max(4, 2 + 0.2 * n_sets))
   }
   item <- context$cfg$resources$items[[params$resource]]
+  ranking_label <- c(lfc = "log2 fold changes", stat = "test statistics (DESeq2 Wald stat)")[[stat_col]]
   list(
     tables = tables, figures = figs, figure_sizes = sizes,
     meta = list(
       geneset_results = list(
         description = paste0(
-          "Gene set tests on the log2 fold changes of '", est, "'; padj = BH over all sets of all collections per ",
+          "Gene set tests on the ", ranking_label, " of '", est, "'; padj = BH over all sets of all collections per ",
           "method variant, universe and contrast. direction: sign of NES (fgsea) or cameraPR Direction."
         ),
-        estimator = est, resource = params$resource, resource_version = item$version %||% NA_character_,
+        estimator = est, ranking_statistic = stat_col, resource = params$resource,
+        resource_version = item$version %||% NA_character_,
         db_version = sort(unique(gs$db_version)),
         match_by = if (id_type == "gene_symbol") "gene_symbol" else "ensembl_gene",
         collections = lapply(params$collections, function(cl) {

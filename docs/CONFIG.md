@@ -103,7 +103,8 @@ Reference files (GTF, gene sets, HPA exports, KEGG) and gene lists.
 |---|---|---|---|
 | `resources.cache_dir` | string | `"resources"` | Folder of the retrieved resources; a relative path resolves against the config file. |
 | `resources.items` | object |  | Resources fetched by the fetch_resources rule into cache_dir. 'source' is a URL or file:// path; 'md5' (optional) is checked after retrieval. Analysis rules only read the cache. |
-| `resources.items.<key>.source` | string |  | URL, file:// path, or a retrieval keyword (kegg_rest). |
+| `resources.items.<key>.source` | string |  | URL, file:// path, or a retrieval keyword: kegg_rest (KEGG pathways of the organism) or msigdbr (MSigDB gene sets of the organism from the msigdbr package, restricted to collections). |
+| `resources.items.<key>.collections` | array of string |  | For source msigdbr: collections to export, each "collection" or "collection:subcollection" (e.g. H, C2:CP:REACTOME, C7:IMMUNESIGDB). |
 | `resources.items.<key>.md5` | string |  | Expected md5, checked after retrieval and before use. |
 | `resources.items.<key>.version` | string |  | Release recorded in the resources manifest (e.g. Ensembl 115). |
 | `resources.items.<key>.kind` | string (gtf, msigdb_export, hpa_immune_cell, hpa_single_cell, fasta, kegg_pathways, tsv) |  | File type; decides the reader. |
@@ -181,7 +182,13 @@ Extra export formats.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `export.xlsx` | boolean | `false` | One Excel workbook per module in report/, one sheet per table. |
+| `export.methods` | boolean | `true` | Write report/methods.md, a methods text of the modules that ran, with versions and references. |
+| `export.methods_notes` | string or null | `null` | Free text added to the methods text under Notes (e.g. what the provider did before delivery). |
+| `export.researcher_workbook` | object | `{}` | One workbook in report/ with the main results for the researcher (see the README sheet). |
+| `export.researcher_workbook.enabled` | boolean | `false` | Write the researcher workbook. |
+| `export.researcher_workbook.file` | string | `"results_workbook.xlsx"` | File name in report/. |
+| `export.researcher_workbook.sheets` | array of string (de, ora, geneset_test, markers, signatures, qc, pca) | `["de","ora","geneset_test","markers","signatures","qc","pca"]` | Result types included, in this order, when their module ran: de (per contrast with a significance metric: all genes, UP, DOWN), ora, geneset_test, markers, signatures, qc, pca. |
 
 ## modules
 
-Parameters of the analysis modules: one section per module, each with `enabled` (default `true`), documented in [MODULES.md](MODULES.md): [`qc`](MODULES.md#02-qc), [`pca`](MODULES.md#03-pca), [`markers`](MODULES.md#04-markers), [`contamination`](MODULES.md#05-contamination), [`contamination_sets`](MODULES.md#06-contamination_sets), [`reference`](MODULES.md#07-reference), [`deconvolution`](MODULES.md#08-deconvolution), [`contrasts`](MODULES.md#09-contrasts), [`de_test`](MODULES.md#10-de_test), [`concordance`](MODULES.md#11-concordance), [`geneset_test`](MODULES.md#12-geneset_test), [`ora`](MODULES.md#13-ora), [`volcano`](MODULES.md#14-volcano), [`signatures`](MODULES.md#15-signatures), [`pairing`](MODULES.md#16-pairing), [`power`](MODULES.md#17-power), [`coverage`](MODULES.md#18-coverage), [`covariates`](MODULES.md#19-covariates), [`reference_axis`](MODULES.md#20-reference_axis).
+Parameters of the analysis modules: one section per module, each with `enabled` (default `true`), documented in [MODULES.md](MODULES.md): [`qc`](MODULES.md#02-qc), [`pca`](MODULES.md#03-pca), [`markers`](MODULES.md#04-markers), [`contamination`](MODULES.md#05-contamination), [`contamination_sets`](MODULES.md#06-contamination_sets), [`reference`](MODULES.md#07-reference), [`deconvolution`](MODULES.md#08-deconvolution), [`contrasts`](MODULES.md#09-contrasts), [`de_test`](MODULES.md#10-de_test), [`concordance`](MODULES.md#11-concordance), [`geneset_test`](MODULES.md#12-geneset_test), [`ora`](MODULES.md#13-ora), [`volcano`](MODULES.md#14-volcano), [`signatures`](MODULES.md#15-signatures), [`pairing`](MODULES.md#16-pairing), [`power`](MODULES.md#17-power), [`coverage`](MODULES.md#18-coverage), [`covariates`](MODULES.md#19-covariates), [`reference_axis`](MODULES.md#20-reference_axis), [`de_heatmap`](MODULES.md#21-de_heatmap).

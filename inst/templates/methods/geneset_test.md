@@ -1,0 +1,3 @@
+<!-- refs: camera, limma, fgsea, gsea, msigdb -->
+<!-- packages: limma, fgsea -->
+Gene set collections of MSigDB{{#x.geneset_resource}} ({{x.geneset_resource}}){{/x.geneset_resource}}, namely {{x.geneset_collections}}, were tested on genes ranked by {{x.geneset_ranking}} with {{x.geneset_methods}}, using sets of {{p.min_size}} to {{p.max_size}} genes in the universes {{x.geneset_universes}}. P-values were adjusted with the Benjamini-Hochberg method over all sets of all collections. Gene-permutation p-values (fgsea) rank sets within one contrast, and cameraPR tests genes for a given contrast: neither is inference across samples.

@@ -1,0 +1,3 @@
+<!-- refs: gsva, ssgsea, singscore, msigdb -->
+<!-- packages: GSVA, singscore -->
+Per-sample scores of {{x.signature_sets}} were computed on log2 counts per million ({{p.norm_method}}, prior count {{p.prior_count}}) of the filtered genes, in the universes {{x.signature_universes}}, with the methods {{p.methods}}: the mean per-gene z-score across samples (zscore), single-sample GSEA from GSVA (ssgsea) and singscore. Sets with fewer than {{p.min_size}} genes in a universe were not scored. Composite scores are the difference of the two scores for zscore and ssgsea and the bidirectional score for singscore. Differences of mean scores between the two sides of each contrast, and the agreement of their signs within contrast pairs, are descriptive.

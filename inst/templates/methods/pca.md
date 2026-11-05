@@ -1,0 +1,3 @@
+<!-- refs: deseq2, edger, tmm -->
+<!-- packages: DESeq2, edgeR -->
+Principal component analysis (prcomp, centred, not scaled) was run on the most variable genes ({{p.ntop}} genes) of the filtered genes after the variance-stabilising transformation of DESeq2 and/or log2 counts per million after TMM normalisation (transforms: {{p.transforms}}), over variants of the gene filter (sex genes: {{p.sex_gene_variants}}; gene subsets: {{p.gene_subsets}}){{#p.thinning}} and on counts thinned to the smallest library{{/p.thinning}}. For each component the experimental factor with the largest difference of mean scores was reported as a descriptive label, not a test. Sample correlations and distances were computed on the same transformed values.

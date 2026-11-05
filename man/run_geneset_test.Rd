@@ -19,8 +19,9 @@ and with contrast pairs \code{geneset_concordance}, \code{geneset_concordant_set
 \code{nes_heatmap} when fgsea runs.
 }
 \description{
-Tests gene set collections of an MSigDB export on the log2 fold changes of each contrast (one estimator), in
-one or more gene universes:
+Tests gene set collections of an MSigDB export on a ranking statistic of each contrast (one estimator): the
+log2 fold change (\code{ranking_statistic = "lfc"}) or the test statistic of DESeq2 tables (\code{"stat"}, the Wald
+statistic, which also weighs the precision of each estimate), in one or more gene universes:
 \itemize{
 \item \code{fgsea} (pre-ranked GSEA, multilevel, \code{eps = 0}, one worker): genes are ordered by decreasing expression, then
 \code{feature_id}, normal noise of SD \code{fgsea_tie_jitter_sd} is added to break ties, and the seed is set once

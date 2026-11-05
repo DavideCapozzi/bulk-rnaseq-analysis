@@ -15,7 +15,8 @@ write_report(cfg, out)
 Path of \code{report/summary.md}, invisibly.
 }
 \description{
-Write the run summary
+Writes \code{report/summary.md} (module statuses and tables) and, as configured in \code{export}, the methods text
+(\code{\link[=write_methods]{write_methods()}}) and the researcher workbook (\code{\link[=write_researcher_workbook]{write_researcher_workbook()}}).
 }
 \examples{
 \donttest{

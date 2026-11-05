@@ -1,0 +1,56 @@
+# Meaning of every column of the researcher workbook (write_researcher_workbook() refuses an undocumented one).
+gene_symbol: Gene symbol.
+feature_id: Gene identifier of the input files (Ensembl gene ID or gene symbol).
+base_mean: Mean of the normalised counts over all samples (DESeq2 baseMean).
+lfc: log2 fold change (numerator over denominator of the contrast).
+fold_change: 'Linear fold change with the sign of the change: 2^lfc when up, -2^-lfc when down.'
+lfc_se: Standard error of the log2 fold change.
+stat: 'Test statistic (DESeq2 Wald statistic: lfc / lfc_se).'
+pvalue: Unadjusted p-value; see inference_scope for what its units are.
+padj: Benjamini-Hochberg adjusted p-value.
+significance_metric: Metric used to call genes significant (padj or posterior_prob).
+significance: Value of the significance metric.
+class: UP, DOWN or NS (not significant) by the thresholds in README.
+inference_scope: What a p-value refers to (see README).
+contrast_id: Contrast (comparison) identifier.
+method: Method or estimator that produced the row (e.g. deseq2, fgsea, camera_pr, zscore).
+database: Annotation database of the term (GO_BP, GO_CC, GO_MF, KEGG, Reactome).
+term_id: Identifier of the term or pathway.
+description: Name of the term or pathway.
+gene_ratio: Significant genes in the term / significant genes with an annotation.
+bg_ratio: Tested genes in the term / tested genes with an annotation.
+count: Number of significant genes in the term.
+gene_symbols: Significant genes in the term.
+inter_gene_cor: Inter-gene correlation assumed by cameraPR (NA for fgsea).
+use_ranks: cameraPR on ranks (TRUE) or on the statistic (FALSE); NA for fgsea.
+universe: Genes the test or score used (subset of the filtered genes).
+collection: MSigDB collection of the gene set.
+set_id: Gene set name.
+size: Genes of the set in the universe.
+nes: Normalised enrichment score (fgsea; NA for cameraPR).
+direction: 'Up or Down: the set''s genes tend to be higher or lower in the contrast''s numerator.'
+leading_edge: Leading-edge genes of the set (fgsea), first ones.
+panel_id: Marker panel.
+n_genes: Genes of the panel or set found in the data.
+label: 'Free-text label: of the sample (PCA) or of the ratio (Marker ratios).'
+ratio_id: Ratio identifier.
+numerator_gene: Gene of the ratio's numerator.
+numerator_sample: Sample of the ratio's numerator.
+denominator_gene: Gene of the ratio's denominator.
+denominator_sample: Sample of the ratio's denominator.
+numerator_cpm: CPM of the numerator gene in the numerator sample.
+denominator_cpm: CPM of the denominator gene in the denominator sample.
+log2_ratio: log2((numerator CPM + pseudocount) / (denominator CPM + pseudocount)).
+difference: Mean score of the numerator samples minus mean score of the denominator samples.
+n_numerator: Samples on the numerator side of the contrast.
+n_denominator: Samples on the denominator side of the contrast.
+metric: QC metric (names as in 02_qc/tables/qc_summary.meta.json).
+sample_id: Sample identifier of the sample sheet.
+sex_genes: Sex-gene rule of the gene filter used for the PCA.
+transform: Transformation of the counts used for the PCA (vst or logcpm_tmm).
+pc1: Score of the sample on principal component 1.
+pc2: Score of the sample on principal component 2.
+pc3: Score of the sample on principal component 3.
+ve1: Percent of variance explained by PC1.
+ve2: Percent of variance explained by PC2.
+ve3: Percent of variance explained by PC3.

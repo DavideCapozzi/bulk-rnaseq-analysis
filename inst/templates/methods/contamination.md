@@ -1,0 +1,2 @@
+<!-- refs: msigdb -->
+Signals of contaminating cells were assessed with gene profiles scored per sample on counts per million of the library size (mean log2(CPM + 1) and CPM sum), with per-gene ratios between samples and excess checks relative to a baseline. A contaminant gene mask joined the genes of gene sets of contaminating cell types (excluding genes in sets of the target cells) and the genes of the chosen profiles; downstream analyses that exclude it say so. Profiles chosen from the same samples make the mask partly data-derived.

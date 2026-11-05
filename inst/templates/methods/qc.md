@@ -1,0 +1,2 @@
+<!-- packages: edgeR -->
+Expression quality metrics were computed per sample on the full count matrix without filtering: library size (reads assigned to genes), numbers of detected genes, and the share of the library taken by mitochondrial, rRNA, ribosomal-protein, protein-coding, lncRNA and hemoglobin genes and by the {{p.top_n_share}} most expressed genes. Metrics delivered by the provider (alignment and read QC reports) were imported unchanged where available.

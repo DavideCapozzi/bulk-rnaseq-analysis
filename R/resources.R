@@ -6,7 +6,9 @@
 #' they read the cache through [verify_resources()].
 #'
 #' Sources: `file://<path>` (copy; relative paths resolve against the config folder), `http(s)://...`
-#' (download), `kegg_rest` (KEGG pathway-gene table for the organism, via KEGGREST).
+#' (download), `kegg_rest` (KEGG pathway-gene table for the organism, via KEGGREST), `msigdbr` (MSigDB gene
+#' sets of the organism via the msigdbr package, restricted to the item's `collections`, written as an
+#' `msigdb_export` sorted by collection, subcollection, set and gene).
 #'
 #' @param cfg Config from [read_config()].
 #' @param items `character` or `NULL`. Subset of resource keys to fetch (default all).
@@ -32,6 +34,9 @@ fetch_resources <- function(cfg, items = NULL) {
     if (src == "kegg_rest") {
       dest <- file.path(cache, paste0(key, ".tsv.gz"))
       version <- fetch_kegg(cfg$project$organism %||% "human", dest)
+    } else if (src == "msigdbr") {
+      dest <- file.path(cache, paste0(key, ".tsv.gz"))
+      version <- fetch_msigdbr(cfg$project$organism %||% "human", unlist(it$collections), dest, key)
     } else if (startsWith(src, "file://")) {
       from <- config_path(cfg, sub("^file://", "", src))
       assert_file(from, paste0("resource '", key, "'"))
@@ -138,5 +143,40 @@ fetch_kegg <- function(organism, dest) {
   paste0(
     "KEGG pathway REST, ", if (length(updated)) tolower(updated) else "last update unknown", ", ",
     length(unique(tab$pathway_id)), " pathways"
+  )
+}
+
+# MSigDB export from the msigdbr package: one "collection" or "collection:subcollection" per entry (the
+# subcollection may itself contain a colon, e.g. C2:CP:REACTOME). Rows are sorted so that the file depends only
+# on the content.
+fetch_msigdbr <- function(organism, collections, dest, key) {
+  if (!requireNamespace("msigdbr", quietly = TRUE)) {
+    abort("resource '", key, "': source msigdbr needs the 'msigdbr' package")
+  }
+  if (length(collections) == 0) {
+    abort("resource '", key, "': source msigdbr needs 'collections' (e.g. [H, C2:CP:REACTOME])")
+  }
+  species <- organism_info(organism)$msigdb_species
+  cols <- c("gs_collection", "gs_subcollection", "gs_name", "ensembl_gene", "gene_symbol", "db_version")
+  parts <- lapply(collections, function(cl) {
+    coll <- sub(":.*$", "", cl)
+    sub_coll <- if (grepl(":", cl, fixed = TRUE)) sub("^[^:]+:", "", cl)
+    x <- if (is.null(sub_coll)) {
+      msigdbr::msigdbr(species = species, collection = coll)
+    } else {
+      msigdbr::msigdbr(species = species, collection = coll, subcollection = sub_coll)
+    }
+    if (nrow(x) == 0) abort("resource '", key, "': msigdbr returned no gene set for collection '", cl, "'")
+    as.data.frame(x)[, cols]
+  })
+  tab <- unique(do.call(rbind, parts))
+  tab <- tab[do.call(order, c(unname(as.list(tab[, cols[1:5]])), method = "radix")), , drop = FALSE]
+  tmp <- tempfile(fileext = ".tsv")
+  data.table::fwrite(tab, tmp, sep = "\t")
+  gzip_deterministic(tmp, dest)
+  unlink(tmp)
+  paste0(
+    "msigdbr ", utils::packageVersion("msigdbr"), ", MSigDB ", paste(sort(unique(tab$db_version)), collapse = ", "),
+    ", ", paste(collections, collapse = " "), ", ", length(unique(tab$gs_name)), " sets"
   )
 }

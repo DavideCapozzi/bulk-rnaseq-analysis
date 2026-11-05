@@ -1,0 +1,1 @@
+For the contrast pairs {{x.contrast_pairs}}, the agreement of the fold changes was summarised by Pearson and Spearman correlations and by the fraction of genes with the same sign above |log2 fold change| thresholds of {{p.thresholds}}, in the gene subsets {{p.subsets}}. These summaries are descriptive: genes are not independent, and contrasts sharing samples share their noise.

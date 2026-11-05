@@ -1,0 +1,2 @@
+<!-- packages: edgeR -->
+Expression of marker genes grouped in panels ({{x.marker_panels}}) was reported per sample as counts and counts per million on the library size (no normalisation factors){{#p.biotypes}}, matching panel symbols among genes of biotype {{p.biotypes}}{{/p.biotypes}}. Panel scores are the sums of the CPM of each panel's genes; log2 ratios between chosen genes and samples used a pseudocount of {{p.pseudocount}} CPM. Panels are starting markers, not validated signatures, and all values are descriptive.

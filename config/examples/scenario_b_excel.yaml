@@ -30,3 +30,10 @@ designs:
   - {id: paired, formula: "~ donor + condition", contrast: [condition, treated, control]}
 modules:
   de_test: {prefilter: {min_count: 10, min_samples: 3}}
+  geneset_test: {estimator: deseq2_wald, ranking_statistic: stat}
+  markers:
+    panels:
+      - {id: first_genes, label: "First genes", genes: [A1BG, A2M, AAMP, ABAT]}
+  de_heatmap: {n_top: 20, per_direction: true}
+export:
+  researcher_workbook: {enabled: true, sheets: [de, geneset_test, markers, qc]}

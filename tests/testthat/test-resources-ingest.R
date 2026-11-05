@@ -15,6 +15,28 @@ test_that("resources are fetched once, recorded with md5 and verified before use
   expect_error(fetch_resources(cfg), "differs from the declared")
 })
 
+test_that("source msigdbr writes a sorted msigdb_export of the chosen collections", {
+  skip_if_not_installed("msigdbr")
+  cfg <- make_cfg(list(
+    project = list(name = "x", output_dir = "o"), inputs = list(),
+    resources = list(cache_dir = "cache", items = list(
+      hs = list(source = "msigdbr", collections = list("H"), kind = "msigdb_export"),
+      none = list(source = "msigdbr", kind = "msigdb_export")
+    ))
+  ))
+  expect_error(fetch_resources(cfg, "none"), "needs 'collections'")
+  man <- read_resources_manifest(fetch_resources(cfg, "hs"))
+  expect_match(man$version, "^msigdbr [0-9.]+, MSigDB .+, H, 50 sets$")
+  gs <- read_gene_sets(verify_resources(cfg, "hs")[["hs"]])
+  expect_equal(unique(gs$gs_collection), "H")
+  expect_equal(length(unique(gs$gs_name)), 50L)
+  key <- do.call(order, c(unname(as.list(gs[, 1:5])), method = "radix"))
+  expect_equal(key, seq_len(nrow(gs)))
+  first <- md5_file(verify_resources(cfg, "hs")[["hs"]])
+  fetch_resources(cfg, "hs")
+  expect_equal(md5_file(verify_resources(cfg, "hs")[["hs"]]), first)
+})
+
 test_that("ingest of the DE-only scenario produces canonical contrast tables with mapping facts", {
   dir <- tempfile("proj_")
   dir.create(dir)

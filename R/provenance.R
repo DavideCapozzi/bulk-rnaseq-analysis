@@ -61,6 +61,9 @@ desc_packages <- function(field) {
 
 #' Write the run summary
 #'
+#' Writes `report/summary.md` (module statuses and tables) and, as configured in `export`, the methods text
+#' ([write_methods()]) and the researcher workbook ([write_researcher_workbook()]).
+#'
 #' @param cfg Config from [read_config()].
 #' @param out `character(1)`. Project output folder.
 #' @return Path of `report/summary.md`, invisibly.
@@ -80,6 +83,8 @@ write_report <- function(cfg, out) {
     lines <- c(lines, paste0("- ", d, ": ", if (length(tabs)) paste(tabs, collapse = ", ") else "(none)"))
   }
   dir.create(file.path(out, "report"), showWarnings = FALSE)
+  if (isTRUE(cfg$export$methods)) write_methods(cfg, out)
+  if (isTRUE(cfg$export$researcher_workbook$enabled)) write_researcher_workbook(cfg, out)
   path <- file.path(out, "report", "summary.md")
   writeLines(lines, path)
   invisible(path)

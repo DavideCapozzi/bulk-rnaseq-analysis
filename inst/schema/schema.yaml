@@ -263,7 +263,17 @@ properties:
           type: object
           required: [source]
           properties:
-            source: {type: string, description: "URL, file:// path, or a retrieval keyword (kegg_rest)."}
+            source:
+              type: string
+              description: >-
+                URL, file:// path, or a retrieval keyword: kegg_rest (KEGG pathways of the organism) or msigdbr
+                (MSigDB gene sets of the organism from the msigdbr package, restricted to collections).
+            collections:
+              type: array
+              items: {type: string}
+              description: >-
+                For source msigdbr: collections to export, each "collection" or "collection:subcollection" (e.g. H,
+                C2:CP:REACTOME, C7:IMMUNESIGDB).
             md5:
               type: string
               pattern: "^[0-9a-f]{32}$"
@@ -506,12 +516,63 @@ properties:
             default: 40
             description: Genes with the largest absolute PC1 loading in pc1_top_loadings.
       markers:
+        description: Per-sample expression of marker gene panels, panel scores and gene ratios between samples.
         type: object
         default: {}
         additionalProperties: false
-        description: Module 04, not implemented yet; its parameters are designed when it is ported.
         properties:
           enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          panels:
+            type: array
+            default: []
+            description: Marker panels, shown in this order; the module runs only when at least one is configured.
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, genes]
+              properties:
+                id: {type: string, pattern: "^[A-Za-z0-9_]+$", description: Panel id used in outputs.}
+                label: {type: string, description: Free-text label shown in reports.}
+                genes: {$ref: "#/$defs/gene_list_ref", description: Genes of the panel (a gene list name or inline symbols).}
+          biotypes:
+            type: [array, "null"]
+            items: {type: string}
+            default: null
+            description: >-
+              A panel symbol matches the features with that symbol whose biotype is listed (e.g. [protein_coding]);
+              null: any biotype.
+          ratios:
+            type: array
+            default: []
+            description: log2((CPM numerator + pseudocount) / (CPM denominator + pseudocount)) of a gene in a sample.
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, numerator, denominator]
+              properties:
+                id: {type: string, pattern: "^[A-Za-z0-9_]+$", description: Ratio id used in outputs.}
+                label: {type: string, description: Free-text label shown in reports.}
+                numerator:
+                  type: object
+                  additionalProperties: false
+                  required: [gene, sample]
+                  description: Gene symbol (one feature after the biotype filter) and sample_id of the numerator.
+                  properties:
+                    gene: {type: string, description: Gene symbol.}
+                    sample: {type: string, description: sample_id.}
+                denominator:
+                  type: object
+                  additionalProperties: false
+                  required: [gene, sample]
+                  description: Gene symbol and sample_id of the denominator.
+                  properties:
+                    gene: {type: string, description: Gene symbol.}
+                    sample: {type: string, description: sample_id.}
+          pseudocount:
+            type: number
+            minimum: 0
+            default: 1
+            description: Added to both CPM values of each ratio.
       contamination:
         description: Contaminant profile scores, ratio and excess checks, and the contaminant gene mask.
         type: object
@@ -771,7 +832,7 @@ properties:
             default: [all]
             description: Gene subset expressions summarised.
       geneset_test:
-        description: Pre-ranked gene set tests (cameraPR, fgsea) on fold changes.
+        description: Pre-ranked gene set tests (cameraPR, fgsea) on fold changes or test statistics.
         type: object
         additionalProperties: false
         default: {}
@@ -782,8 +843,15 @@ properties:
             type: [string, "null"]
             default: null
             description: >-
-              Method of the contrast tables whose log2 fold changes rank the genes (e.g. logcpm_difference); null: the
+              Method of the contrast tables whose statistic ranks the genes (e.g. logcpm_difference); null: the
               first method available.
+          ranking_statistic:
+            type: string
+            enum: [lfc, stat]
+            default: lfc
+            description: >-
+              Column that ranks the genes. lfc: log2 fold change; stat: test statistic of DESeq2 tables (Wald stat,
+              imported or from de_test), which also weighs the precision of each fold change.
           contrasts:
             type: array
             items: {type: string}
@@ -906,12 +974,83 @@ properties:
             default: 15
             description: Significant genes labelled per volcano (most significant first).
       signatures:
+        description: Per-sample gene signature scores, their differences per contrast and agreement per contrast pair.
         type: object
         default: {}
         additionalProperties: false
-        description: Module 15, not implemented yet; its parameters are designed when it is ported.
         properties:
           enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          resource:
+            type: [string, "null"]
+            default: null
+            description: Key of the msigdb_export in resources.items that holds msigdb_sets.
+          msigdb_sets:
+            type: array
+            items: {type: string}
+            default: []
+            description: MSigDB set names (gs_name) scored; the set name is its id in outputs.
+          custom_sets:
+            type: array
+            default: []
+            description: Gene sets given as gene symbols (a gene list name or inline symbols).
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, genes]
+              properties:
+                id: {type: string, pattern: "^[A-Za-z0-9_]+$", description: Set id used in outputs.}
+                genes: {$ref: "#/$defs/gene_list_ref", description: Genes of the set.}
+          composites:
+            type: array
+            default: []
+            description: >-
+              Two-sided scores: score(up) - score(down) for zscore and ssgsea; simpleScore(up, down) for singscore.
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, up, down]
+              properties:
+                id: {type: string, description: Composite id used in outputs.}
+                up: {type: string, description: Id of the set expected higher.}
+                down: {type: string, description: Id of the set expected lower.}
+          methods:
+            type: array
+            items: {type: string, enum: [zscore, ssgsea, singscore]}
+            default: [zscore]
+            description: >-
+              zscore: mean per-gene z-score across the samples of the run; ssgsea: GSVA ssGSEA; singscore:
+              singscore simpleScore on within-sample ranks.
+          universes:
+            type: array
+            minItems: 1
+            default: [{id: all, subset: all}]
+            description: Genes scored, as subset expressions over the genes kept by gene_filter; scored in this order.
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, subset]
+              properties:
+                id: {type: string, pattern: "^[A-Za-z0-9_]+$", description: Universe id used in outputs.}
+                subset: {type: string, description: "Subset expression over the gene flags (e.g. all, no_masked)."}
+          min_size:
+            type: integer
+            minimum: 1
+            default: 10
+            description: Sets with fewer genes in a universe are not scored there (also ssGSEA minSize).
+          prior_count: {type: number, default: 2, description: Prior count of the log2 CPM.}
+          norm_method:
+            type: string
+            enum: [TMM, RLE, upperquartile, none]
+            default: TMM
+            description: Library normalisation of the log2 CPM.
+          figure_universe:
+            type: [string, "null"]
+            default: null
+            description: 'Universe of the signature_scores figure (null: the first).'
+          figure_method:
+            type: [string, "null"]
+            default: null
+            description: 'Method of the signature_scores figure (null: the first).'
       pairing:
         description: Sex check, expression fingerprint distances and male fraction.
         type: object
@@ -1150,6 +1289,46 @@ properties:
             enum: [TMM, RLE, upperquartile, none]
             default: TMM
             description: Library normalisation of the sample scores.
+      de_heatmap:
+        description: Heatmaps of the top differentially expressed genes of each contrast with a significance metric.
+        type: object
+        default: {}
+        additionalProperties: false
+        properties:
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          contrasts:
+            type: array
+            items: {type: string}
+            default: []
+            description: Contrast ids drawn, in this order (empty = every contrast with a significance metric).
+          n_top:
+            type: integer
+            minimum: 2
+            default: 50
+            description: Most significant genes classified UP or DOWN by the project thresholds, per contrast.
+          per_direction:
+            type: boolean
+            default: false
+            description: >-
+              Take up to half of n_top from each direction (UP and DOWN), so that the strongest direction does not
+              fill the heatmap.
+          values:
+            type: string
+            enum: [auto, normalized, median_of_ratios]
+            default: auto
+            description: >-
+              Normalised counts shown. normalized: the normalized input; median_of_ratios: counts divided by DESeq2
+              size factors computed on the genes of the contrast table; auto: normalized when present, else
+              median_of_ratios.
+          cluster_rows:
+            type: boolean
+            default: true
+            description: Order the genes by hierarchical clustering (complete linkage) of their z-scores.
+          z_limit:
+            type: number
+            exclusiveMinimum: 0
+            default: 2.5
+            description: Limit of the colour scale; larger absolute z-scores are drawn at the limit.
 
   export:
     description: Extra export formats.
@@ -1161,3 +1340,26 @@ properties:
         type: boolean
         default: false
         description: One Excel workbook per module in report/, one sheet per table.
+      methods:
+        type: boolean
+        default: true
+        description: Write report/methods.md, a methods text of the modules that ran, with versions and references.
+      methods_notes:
+        type: [string, "null"]
+        default: null
+        description: Free text added to the methods text under Notes (e.g. what the provider did before delivery).
+      researcher_workbook:
+        description: One workbook in report/ with the main results for the researcher (see the README sheet).
+        type: object
+        additionalProperties: false
+        default: {}
+        properties:
+          enabled: {type: boolean, default: false, description: Write the researcher workbook.}
+          file: {type: string, default: results_workbook.xlsx, description: File name in report/.}
+          sheets:
+            type: array
+            items: {type: string, enum: [de, ora, geneset_test, markers, signatures, qc, pca]}
+            default: [de, ora, geneset_test, markers, signatures, qc, pca]
+            description: >-
+              Result types included, in this order, when their module ran: de (per contrast with a significance
+              metric: all genes, UP, DOWN), ora, geneset_test, markers, signatures, qc, pca.

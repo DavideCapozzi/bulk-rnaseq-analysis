@@ -1,0 +1,3 @@
+<!-- refs: deseq2 -->
+<!-- packages: DESeq2 -->
+Differential expression was tested with DESeq2 (Wald test, maximum-likelihood log2 fold changes without shrinkage, Benjamini-Hochberg adjusted p-values, independent filtering at alpha {{p.results_alpha}}) for the designs {{x.designs}}, on genes with at least {{p.prefilter.min_count}} reads in at least {{p.prefilter.min_samples}} samples. A design needs at least one residual degree of freedom; with exactly one the results are flagged as exploratory.{{#p.compare_with}} The computed results were compared gene by gene with the provider's table (classification, fold changes and p-values).{{/p.compare_with}}

@@ -1,0 +1,3 @@
+<!-- refs: clusterprofiler, reactomepa, go, kegg -->
+<!-- packages: clusterProfiler, ReactomePA, org.Hs.eg.db -->
+Over-representation of {{p.databases}} terms among the significant genes of each contrast ({{x.de_thresholds}}; up- and down-regulated genes together) was tested with clusterProfiler and ReactomePA (hypergeometric test, {{p.p_adjust_method}} adjustment, cut-off {{p.pvalue_cutoff}}; KEGG pathways from the KEGG REST API at fetch time) against the universe of the genes tested in that contrast. Gene identifiers were mapped to Entrez IDs with org.Hs.eg.db. The test treats genes as independent units for a given contrast.

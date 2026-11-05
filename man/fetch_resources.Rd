@@ -22,7 +22,9 @@ they read the cache through \code{\link[=verify_resources]{verify_resources()}}.
 }
 \details{
 Sources: \verb{file://<path>} (copy; relative paths resolve against the config folder), \verb{http(s)://...}
-(download), \code{kegg_rest} (KEGG pathway-gene table for the organism, via KEGGREST).
+(download), \code{kegg_rest} (KEGG pathway-gene table for the organism, via KEGGREST), \code{msigdbr} (MSigDB gene
+sets of the organism via the msigdbr package, restricted to the item's \code{collections}, written as an
+\code{msigdb_export} sorted by collection, subcollection, set and gene).
 }
 \examples{
 src <- tempfile(fileext = ".tsv")

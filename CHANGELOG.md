@@ -8,6 +8,32 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `markers` module (04): per-sample expression of marker panels (gene lists or inline symbols, optional biotype
+  filter): counts, CPM on the library size, TPM and provider-normalised counts when available; panel scores (sum
+  of CPM) and log2 ratios of a gene in one sample over a gene in another. Figures `markers_heatmap` and
+  `marker_panels`.
+- `signatures` module (15): per-sample scores of MSigDB sets and custom gene sets on log2 CPM of the filtered
+  genes, with `zscore`, `ssgsea` (GSVA) and `singscore`, in one or more universes; two-sided composites
+  (difference of scores, bidirectional for singscore); per configured contrast the difference of the mean scores
+  of its two sides, per contrast pair the agreement of their signs. Descriptive (no p-values). Tables
+  `signature_scores`, `signature_differences`, `signature_method_comparison`; figure `signature_scores`.
+- `de_heatmap` module (21): per contrast with a significance metric, a heatmap of the most significant UP/DOWN
+  genes (`n_top`, optionally half per direction) as per-gene z-scores of log2(normalised count + 1): the provider's
+  normalised counts when delivered, otherwise median-of-ratios size factors. Tables `de_heatmap_genes` and
+  `de_heatmap_values`.
+- `report/methods.md` (`export.methods`, on by default): a methods text of the modules that ran, built from
+  per-module templates (`inst/templates/methods/`) and the resolved config, with software versions, references
+  and optional free-text notes (`export.methods_notes`).
+- Researcher workbook (`export.researcher_workbook`, off by default): one Excel file in `report/` with a README
+  sheet (design, thresholds, inference scopes, guide to the sheets, glossary of every column), the methods text
+  and the main results (DE per contrast with UP and DOWN sheets, ORA, gene set tests, markers, signatures, QC,
+  PCA). Every column must have an entry in `inst/extdata/column_glossary.yaml`.
+- `geneset_test`: `ranking_statistic` (`lfc`, default, or `stat`, the DESeq2 Wald statistic of imported or computed
+  tables).
+- Resource source `msigdbr`: MSigDB collections of the organism exported from the msigdbr package
+  (`collections`, e.g. `[H, "C2:CP:REACTOME"]`), sorted so that the file depends only on its content.
+- Package gene lists `immune_*` (`inst/extdata/gene_lists/immune_markers.tsv`): canonical markers of immune cell
+  types, as starting panels.
 - `reference_axis` module (20): descriptive measures of the fold changes of one estimator against reference axes
   (`log2` ratio of HPA cell types, e.g. T-reg over naive or memory CD4 T cells): Spearman correlation per axis
   and contrast, mean fold change per gene set, sign agreement of each contrast pair above a threshold with a
@@ -29,6 +55,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Every run writes `report/methods.md` unless `export.methods` is false. GSVA, singscore and msigdbr are
+  suggested packages (recorded in the run manifest).
 - Schema of `modules.geneset_test` (not implemented before): `collections` are objects (`id`, `collection`,
   `subcollection`, `set_pattern`) instead of names, `universes` are `{id, subset}` as in `power`; new `resource`,
   `estimator`, `contrasts`, `seed`, `leading_edge_max`, `concordance_collections` and figure parameters. The

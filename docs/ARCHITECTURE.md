@@ -160,7 +160,7 @@ they never fail the run silently or abort it.
 |---|---|---|---|---|---|---|---|---|---|
 | 02 | `qc` | R¹ | o | — | — | — | — | R¹ | annotation; ¹ either level suffices |
 | 03 | `pca` | R | o | — | — | — | — | o | annotation; ≥ 3 samples; optional `gene_mask`, `gene_universe` (gene subsets) |
-| 04 | `markers` | R | o | — | — | — | — | — | annotation, marker panels |
+| 04 | `markers` | R | o | o | — | — | — | — | panels in the config (gene lists or symbols); biotype filter needs the annotation |
 | 05 | `contamination` | R | — | — | — | — | — | — | annotation, gene lists (profiles), MSigDB export (`mask.resource`); provides `gene_mask` |
 | 06 | `contamination_sets` | — | — | — | — | R | — | — | contaminant profiles |
 | 07 | `reference` | R | — | — | — | — | — | — | annotation, HPA exports (`profiles[].resource`); optional `gene_mask`; provides `gene_universe` |
@@ -171,12 +171,13 @@ they never fail the run silently or abort it.
 | 12 | `geneset_test` | — | — | — | — | R | — | — | MSigDB export (`resource`); optional gene flags (`universes`); contrast pairs for set concordance |
 | 13 | `ora` | — | — | — | R | — | — | — | OrgDb, GO/Reactome packages, KEGG table in cache |
 | 14 | `volcano` | — | — | — | R | — | — | — | — |
-| 15 | `signatures` | R | — | — | — | — | — | — | gene sets |
+| 15 | `signatures` | R | — | — | — | — | — | — | MSigDB export (`resource`) and/or custom sets; optional gene flags (`universes`); config contrasts and pairs for differences |
 | 16 | `pairing` | R | o | — | — | — | — | — | annotation (chromosomes), sex and fingerprint gene lists; a variant without genes is skipped and noted |
 | 17 | `power` | R | — | — | — | — | — | — | a design with df ≥ 1 (BCV and its per-gene interval); Hart grid; optional gene flags (`universes`) |
 | 18 | `coverage` | — | — | — | — | — | R | — | annotation exons |
 | 19 | `covariates` | — | — | — | R | — | — | — | annotation exons, transcript FASTA |
 | 20 | `reference_axis` | o | — | — | R | — | — | — | HPA exports (`axes[].resource`), MSigDB export (`gene_sets.resource`); optional gene flags (`subset`); contrast pairs for the sign test; sample scores need counts |
+| 21 | `de_heatmap` | R | — | o | R | — | — | — | a contrast with a significance metric |
 
 Example (scenario c, a DESeq2 and a NOISeq table): `contrast_stats` and `ranked` are available; `geneset_test`,
 `ora` and `volcano` run; `concordance` would run with a contrast pair; `qc`, `pca`, `contrasts` and `de_test` are
@@ -245,7 +246,9 @@ NN_<module>/
   logs/module.log
 report/
   summary.md
+  methods.md               methods text of the modules that ran (export.methods, default true)
   NN_<module>.xlsx         when export.xlsx is true; first sheet "Info" with parameters
+  results_workbook.xlsx    researcher workbook (export.researcher_workbook; README sheet with a column glossary)
 ```
 
 Module numbers are fixed in `inst/modules.yaml`, so a skipped module leaves a gap rather than renumbering.

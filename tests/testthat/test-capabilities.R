@@ -26,7 +26,7 @@ test_that("DE-only input runs volcano and ORA, skips sample-level modules with t
   )
   expect_match(caps$reason[caps$module == "qc"], "needs one of counts, qc")
   # A module not ported yet says so first, whatever else it would need.
-  expect_match(caps$reason[caps$module == "markers"], "^markers skipped: not implemented in bulkrnaseq")
+  expect_match(caps$reason[caps$module == "deconvolution"], "^deconvolution skipped: not implemented in bulkrnaseq")
   expect_equal(caps$depends_on[caps$module == "volcano"], "ingest")
 })
 

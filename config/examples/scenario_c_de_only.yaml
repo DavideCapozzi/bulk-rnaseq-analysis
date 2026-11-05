@@ -22,3 +22,5 @@ resources:
     gtf: {source: "file://../../tests/fixtures/resources/annotation.gtf.gz", kind: gtf}
     gene_sets: {source: "file://../../tests/fixtures/resources/gene_sets.tsv.gz", kind: msigdb_export}
     kegg_pathways: {source: "file://../../tests/fixtures/resources/kegg_pathways.tsv.gz", kind: kegg_pathways}
+export:
+  researcher_workbook: {enabled: true}

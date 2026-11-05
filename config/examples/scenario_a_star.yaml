@@ -43,6 +43,25 @@ designs:
   - {id: additive, formula: "~ batch + condition", contrast: [condition, treated, control]}
 modules:
   geneset_test: {methods: [camera_pr, fgsea]}
+  markers:
+    biotypes: [protein_coding]
+    panels:
+      - {id: myeloid_like, label: "Myeloid-like", genes: [A2M, SERPINA3, ABCA1, ABL1]}
+      - {id: housekeeping, label: "Housekeeping", genes: [ACTB, ACTG1, NOT_A_GENE]}
+    ratios:
+      - {id: a2m_s3_over_s1, label: "A2M in s3 over s1", numerator: {gene: A2M, sample: s3}, denominator: {gene: A2M, sample: s1}}
+  signatures:
+    resource: gene_sets
+    msigdb_sets: [SYNTHETIC_SET_01, SYNTHETIC_SET_02, SYNTHETIC_SET_03]
+    custom_sets:
+      - {id: housekeeping, genes: [ACTB, ACTG1, ACTN4, ACO2, ACLY, AAMP, ABAT, ABCF1, A1BG, A2M]}
+    composites:
+      - {id: set01_vs_set02, up: SYNTHETIC_SET_01, down: SYNTHETIC_SET_02}
+    methods: [zscore, ssgsea, singscore]
+    min_size: 5
+    universes:
+      - {id: all, subset: all}
+      - {id: reference_universe, subset: in_reference_universe+no_masked}
   pca:
     gene_subsets: [all, no_masked, in_reference_universe+no_masked]
   contamination:
@@ -88,3 +107,5 @@ modules:
     sign_test: {threshold: 0.58}
 export:
   xlsx: true
+  researcher_workbook: {enabled: true}
+  methods_notes: Synthetic data; the provider's processing is not described.

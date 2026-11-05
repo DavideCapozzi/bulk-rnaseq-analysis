@@ -45,8 +45,8 @@ Three example configs in [`config/examples/`](config/examples/) run on small syn
 
 | Config | Inputs | Modules that run |
 |---|---|---|
-| `scenario_a_star.yaml` | STAR counts, StringTie abundances, a MultiQC report | `qc`, `pca`, `contamination`, `reference`, `contrasts`, `de_test`, `concordance`, `geneset_test`, `volcano`, `pairing`, `power`, `reference_axis` |
-| `scenario_b_excel.yaml` | raw and normalised counts in Excel | `qc`, `pca`, `de_test`, `geneset_test`, `volcano`, `pairing`, `power` |
+| `scenario_a_star.yaml` | STAR counts, StringTie abundances, a MultiQC report | `qc`, `pca`, `markers`, `contamination`, `reference`, `contrasts`, `de_test`, `concordance`, `geneset_test`, `volcano`, `signatures`, `pairing`, `power`, `reference_axis`, `de_heatmap` |
+| `scenario_b_excel.yaml` | raw and normalised counts in Excel | `qc`, `pca`, `markers`, `de_test`, `geneset_test`, `volcano`, `pairing`, `power`, `de_heatmap` |
 | `scenario_c_de_only.yaml` | a DESeq2 and a NOISeq table only | `geneset_test`, `ora`, `volcano` |
 
 ```bash
@@ -57,7 +57,9 @@ bin/bulkrnaseq run   config/examples/scenario_b_excel.yaml
 
 Outputs go to `results/<project name>/`: one folder per step (`01_ingest`, `02_qc`, …) with TSV tables, a
 `.meta.json` sidecar per table (description, units, filters, seed), PNG figures, one Excel workbook per module in
-`report/`, and `report/summary.md` with the status of every module and the reason for each skip.
+`report/`, `report/summary.md` with the status of every module and the reason for each skip, and
+`report/methods.md`, a methods text of the modules that ran. With `export.researcher_workbook` the main results
+also go to one workbook for the researcher, with a README sheet that explains every column.
 `00_provenance/` records the resolved config, the toolkit commit, the md5 of every input and, in `benchmarks/`,
 the wall time and peak memory of every step. `--cores N` (before the config) runs independent modules in
 parallel, by default up to 4; the outputs do not depend on it.
@@ -80,6 +82,11 @@ and nowhere else. The config shows most of the toolkit on one project:
   samples);
 - `reference_axis` correlates the fold changes with an axis built from two synthetic HPA cell types, averages them
   over two gene sets, tests the sign agreement of the contrast pair and scores each sample on the axis;
+- `markers` reports two panels per sample (one symbol is missing on purpose and listed in the metadata) and a
+  ratio of one gene between two samples; `signatures` scores synthetic sets and a custom set with three methods
+  in two universes, with their difference per contrast and their sign agreement in the pair;
+- `de_heatmap` draws the most significant genes of `de_test`;
+- the researcher workbook (`report/results_workbook.xlsx`) collects the results with a README sheet;
 - `ora` is skipped: the config has no `kegg_pathways` resource.
 
 ### Scenario b: count matrices in Excel
@@ -88,8 +95,10 @@ Six samples (three donors, two conditions) as raw and provider-normalised count 
 IDs. At ingest, `01_ingest/normalization_check.tsv` checks whether DESeq2 median-of-ratios on a filtered gene set
 reproduces the provider's normalised counts. `de_test` fits an unpaired (`~ condition`) and a paired
 (`~ donor + condition`) design; `10_de_test/tables/design_summary.tsv` gives the residual degrees of freedom of
-each. `geneset_test` ranks the genes by the fold changes of the first method of `de_test` (cameraPR, the
-default). Without `contrasts:`, `contrast_pairs:` or contamination and reference profiles in the config, those modules
+each. `geneset_test` ranks the genes by the DESeq2 Wald statistic (`ranking_statistic: stat`) of `de_test`
+(cameraPR, the default). `markers` reports one panel with the provider's normalised counts next to the CPM;
+`de_heatmap` shows the provider's normalised counts of the top genes, half up and half down; the researcher
+workbook has the DE, gene set, marker and QC sheets. Without `contrasts:`, `contrast_pairs:` or contamination and reference profiles in the config, those modules
 are skipped and `report/summary.md` says why.
 
 ### Scenario c: differential-expression tables only
@@ -98,7 +107,7 @@ No counts: a DESeq2 workbook (`df_residual: 4`) and a NOISeq table without repli
 module that needs counts is skipped with the reason. `volcano` and `ora` (GO, KEGG, Reactome) run on both tables,
 `geneset_test` on the DESeq2 one (the first method; `modules.geneset_test.estimator` chooses another);
 the NOISeq probabilities carry `inference_scope = conditional_on_contrast`, because with 0 residual degrees of
-freedom they say nothing about new samples.
+freedom they say nothing about new samples. The researcher workbook has one set of DE sheets per table.
 
 ## A new project
 

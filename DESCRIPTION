@@ -43,10 +43,13 @@ Suggests:
     clusterProfiler,
     covr,
     fgsea,
+    GSVA,
     KEGGREST,
     limma,
+    msigdbr,
     org.Hs.eg.db,
     ReactomePA,
+    singscore,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.0

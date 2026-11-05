@@ -1,0 +1,2 @@
+<!-- refs: hpa, monaco -->
+Reference expression profiles of the Human Protein Atlas (immune cells, nTPM; single cell types, nCPM) defined a gene universe: genes expressed by the target cells (reference value >= {{p.min_target_expr}}) and not dominated by a contaminating cell type (maximum contaminant value >= {{p.contam_min}} and >= {{p.contam_fold}} times the target value + 1). Reference values come from other platforms and tissues and were used as coarse filters.

@@ -60,9 +60,9 @@ modules:
     number: 4
     function: run_markers
     requires: [counts]
-    optional: [abundance]
-    resources: [annotation, marker_panels]
-    conditions: []
+    optional: [abundance, normalized]
+    resources: []
+    conditions: [{configured: [panels]}]
     provides: []
     params: modules.markers
     outputs: [marker_expression, marker_panel_scores, marker_ratios]
@@ -217,14 +217,17 @@ modules:
     number: 15
     function: run_signatures
     requires: [counts]
-    resources: [gene_sets]
-    conditions: []
+    optional: [gene_mask, gene_universe]
+    resources: []
+    conditions: [{configured: [msigdb_sets, custom_sets]}]
     provides: []
     params: modules.signatures
-    outputs: [signature_scores]
+    outputs: [signature_scores, signature_differences, signature_method_comparison]
     figures: [signature_scores]
     caveats:
       - "z-score is relative to the samples in the run; singscore and ssGSEA are within-sample ranks."
+      - "ssGSEA scores are normalised over the sets scored together: adding or removing a set changes the others."
+      - "Differences between contrast sides and their sign agreement within a pair are descriptive (no p-values)."
 
   pairing:
     number: 16
@@ -301,3 +304,18 @@ modules:
     caveats:
       - "Axes come from external references (other platforms and tissues): correlations with them are descriptive."
       - "The binomial p-value of the sign test treats genes as independent, which they are not: conditional_on_contrast and descriptive."
+
+  de_heatmap:
+    number: 21
+    function: run_de_heatmap
+    requires: [contrast_stats, counts]
+    optional: [normalized]
+    resources: []
+    conditions: [{significance_available: true}]
+    provides: []
+    params: modules.de_heatmap
+    outputs: [de_heatmap_genes, de_heatmap_values]
+    figures: [de_heatmap]
+    caveats:
+      - "Rows are z-scores across the samples shown: colours compare samples within a gene, not genes with each other."
+      - "Genes are selected on the same samples, so their separation of the groups is expected and only descriptive."

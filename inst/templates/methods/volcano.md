@@ -1,0 +1,1 @@
+Volcano plots show, for each contrast with a significance metric, the log2 fold change against the metric under its own name; genes were classified as up, down or not significant with {{x.de_thresholds}}.

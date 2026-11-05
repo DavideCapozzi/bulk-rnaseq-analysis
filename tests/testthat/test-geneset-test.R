@@ -132,6 +132,28 @@ test_that("geneset_test fails loudly on bad configuration", {
   expect_error(run(list(universes = list(list(id = "u", subset = "all"), list(id = "u", subset = "all")))), "duplicated")
 })
 
+test_that("geneset_test ranks by the DESeq2 statistic when asked, and needs it", {
+  skip_if_not_installed("limma")
+  x <- geneset_fixture()
+  p <- list(collections = list(list(id = "H", collection = "H")), min_size = 10)
+  by_lfc <- run_geneset_test(list(contrast_stats = x$ct), p, x$ctx)
+  expect_equal(by_lfc$meta$geneset_results$ranking_statistic, "lfc")
+  expect_error(
+    run_geneset_test(list(contrast_stats = x$ct), c(p, ranking_statistic = "stat"), x$ctx),
+    "has no stat values"
+  )
+  ct <- x$ct
+  # A statistic that reverses the fold changes reverses the direction of every set.
+  ct$stat <- -ct$lfc
+  by_stat <- run_geneset_test(list(contrast_stats = ct), c(p, ranking_statistic = "stat"), x$ctx)
+  expect_equal(by_stat$meta$geneset_results$ranking_statistic, "stat")
+  expect_match(by_stat$meta$geneset_results$description, "test statistics")
+  a <- by_lfc$tables$geneset_results
+  b <- by_stat$tables$geneset_results
+  expect_equal(b$pvalue, a$pvalue)
+  expect_equal(b$direction, ifelse(a$direction == "Up", "Down", "Up"))
+})
+
 test_that("module tables accept only known inference scopes", {
   res <- list(tables = list(t = data.frame(pvalue = 0.1, inference_scope = "whatever")), figures = list(), meta = list())
   expect_error(write_module_outputs(res, tempfile()), "invalid inference_scope whatever")

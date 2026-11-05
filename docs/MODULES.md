@@ -4,13 +4,13 @@
 
 Every module declares the data levels it needs. A module whose needs are not met, or that is not implemented yet, is skipped with the reason in `00_provenance/capabilities.json` and `report/summary.md`. Defaults come from the config schema; `bulkrnaseq plan <config>` shows what a project runs. The other sections of the config are in [CONFIG.md](CONFIG.md).
 
-19 modules: 13 implemented, 6 not implemented.
+20 modules: 16 implemented, 4 not implemented.
 
 | NN | Module | Status | Data levels | Provides |
 |---|---|---|---|---|
 | 02 | [`qc`](#02-qc) | implemented | one of `counts`, `qc` | none |
 | 03 | [`pca`](#03-pca) | implemented | `counts` | none |
-| 04 | [`markers`](#04-markers) | not implemented | `counts` | none |
+| 04 | [`markers`](#04-markers) | implemented | `counts` | none |
 | 05 | [`contamination`](#05-contamination) | implemented | `counts` | `gene_mask` |
 | 06 | [`contamination_sets`](#06-contamination_sets) | not implemented | `ranked` | none |
 | 07 | [`reference`](#07-reference) | implemented | `counts` | `gene_universe` |
@@ -21,12 +21,13 @@ Every module declares the data levels it needs. A module whose needs are not met
 | 12 | [`geneset_test`](#12-geneset_test) | implemented | `ranked` | none |
 | 13 | [`ora`](#13-ora) | implemented | `contrast_stats` | none |
 | 14 | [`volcano`](#14-volcano) | implemented | `contrast_stats` | none |
-| 15 | [`signatures`](#15-signatures) | not implemented | `counts` | none |
+| 15 | [`signatures`](#15-signatures) | implemented | `counts` | none |
 | 16 | [`pairing`](#16-pairing) | implemented | `counts` | none |
 | 17 | [`power`](#17-power) | implemented | `counts` | none |
 | 18 | [`coverage`](#18-coverage) | not implemented | `coverage` | none |
 | 19 | [`covariates`](#19-covariates) | not implemented | `contrast_stats` | none |
 | 20 | [`reference_axis`](#20-reference_axis) | implemented | `contrast_stats` | none |
+| 21 | [`de_heatmap`](#21-de_heatmap) | implemented | `contrast_stats`, `counts` | none |
 
 Schema types used below:
 
@@ -106,12 +107,12 @@ Parameters (`modules.pca`):
 
 ## 04 markers
 
-Status: not implemented (`run_markers`). Output folder: `04_markers/`.
+Status: implemented (`run_markers`). Output folder: `04_markers/`.
 
 - Data levels: `counts`
-- Optional levels: `abundance`
-- Resources: `annotation`, `marker_panels`
-- Conditions: none
+- Optional levels: `abundance`, `normalized`
+- Resources: none
+- Conditions: `configured: panels`
 - Provides: none
 - Tables: `marker_expression`, `marker_panel_scores`, `marker_ratios`
 - Figures: `markers_heatmap`, `marker_panels`
@@ -125,6 +126,21 @@ Parameters (`modules.markers`):
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `enabled` | boolean | `true` | Run the module when its data levels are present. |
+| `panels` | array of object | `[]` | Marker panels, shown in this order; the module runs only when at least one is configured. |
+| `panels[].id` | string |  | Panel id used in outputs. |
+| `panels[].label` | string |  | Free-text label shown in reports. |
+| `panels[].genes` | gene_list_ref |  | Genes of the panel (a gene list name or inline symbols). |
+| `biotypes` | array or null | `null` | A panel symbol matches the features with that symbol whose biotype is listed (e.g. [protein_coding]); null: any biotype. |
+| `ratios` | array of object | `[]` | log2((CPM numerator + pseudocount) / (CPM denominator + pseudocount)) of a gene in a sample. |
+| `ratios[].id` | string |  | Ratio id used in outputs. |
+| `ratios[].label` | string |  | Free-text label shown in reports. |
+| `ratios[].numerator` | object |  | Gene symbol (one feature after the biotype filter) and sample_id of the numerator. |
+| `ratios[].numerator.gene` | string |  | Gene symbol. |
+| `ratios[].numerator.sample` | string |  | sample_id. |
+| `ratios[].denominator` | object |  | Gene symbol and sample_id of the denominator. |
+| `ratios[].denominator.gene` | string |  | Gene symbol. |
+| `ratios[].denominator.sample` | string |  | sample_id. |
+| `pseudocount` | number | `1` | Added to both CPM values of each ratio. |
 
 ## 05 contamination
 
@@ -361,7 +377,8 @@ Parameters (`modules.geneset_test`):
 |---|---|---|---|
 | `enabled` | boolean | `true` | Run the module when its data levels are present. |
 | `resource` | string | `"gene_sets"` | Key of an msigdb_export in resources.items. |
-| `estimator` | string or null | `null` | Method of the contrast tables whose log2 fold changes rank the genes (e.g. logcpm_difference); null: the first method available. |
+| `estimator` | string or null | `null` | Method of the contrast tables whose statistic ranks the genes (e.g. logcpm_difference); null: the first method available. |
+| `ranking_statistic` | string (lfc, stat) | `"lfc"` | Column that ranks the genes. lfc: log2 fold change; stat: test statistic of DESeq2 tables (Wald stat, imported or from de_test), which also weighs the precision of each fold change. |
 | `contrasts` | array of string | `[]` | Contrast ids to test, in this order (empty = every contrast of the estimator, config order). |
 | `methods` | array of string (camera_pr, fgsea) | `"camera_pr"` | camera_pr: limma::cameraPR; fgsea: pre-ranked fgsea (multilevel). |
 | `collections` | array of object | `[{"id":"H","collection":"H"}]` | Gene set collections of the export: gs_collection, optional gs_subcollection and a regular expression on gs_name. P-values are adjusted over all collections together. |
@@ -436,25 +453,45 @@ Parameters (`modules.volcano`):
 
 ## 15 signatures
 
-Status: not implemented (`run_signatures`). Output folder: `15_signatures/`.
+Status: implemented (`run_signatures`). Output folder: `15_signatures/`.
 
 - Data levels: `counts`
-- Optional levels: none
-- Resources: `gene_sets`
-- Conditions: none
+- Optional levels: `gene_mask`, `gene_universe`
+- Resources: none
+- Conditions: `configured: msigdb_sets, custom_sets`
 - Provides: none
-- Tables: `signature_scores`
+- Tables: `signature_scores`, `signature_differences`, `signature_method_comparison`
 - Figures: `signature_scores`
 
 Caveats:
 
 - z-score is relative to the samples in the run; singscore and ssGSEA are within-sample ranks.
+- ssGSEA scores are normalised over the sets scored together: adding or removing a set changes the others.
+- Differences between contrast sides and their sign agreement within a pair are descriptive (no p-values).
 
 Parameters (`modules.signatures`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `enabled` | boolean | `true` | Run the module when its data levels are present. |
+| `resource` | string or null | `null` | Key of the msigdb_export in resources.items that holds msigdb_sets. |
+| `msigdb_sets` | array of string | `[]` | MSigDB set names (gs_name) scored; the set name is its id in outputs. |
+| `custom_sets` | array of object | `[]` | Gene sets given as gene symbols (a gene list name or inline symbols). |
+| `custom_sets[].id` | string |  | Set id used in outputs. |
+| `custom_sets[].genes` | gene_list_ref |  | Genes of the set. |
+| `composites` | array of object | `[]` | Two-sided scores: score(up) - score(down) for zscore and ssgsea; simpleScore(up, down) for singscore. |
+| `composites[].id` | string |  | Composite id used in outputs. |
+| `composites[].up` | string |  | Id of the set expected higher. |
+| `composites[].down` | string |  | Id of the set expected lower. |
+| `methods` | array of string (zscore, ssgsea, singscore) | `"zscore"` | zscore: mean per-gene z-score across the samples of the run; ssgsea: GSVA ssGSEA; singscore: singscore simpleScore on within-sample ranks. |
+| `universes` | array of object | `[{"id":"all","subset":"all"}]` | Genes scored, as subset expressions over the genes kept by gene_filter; scored in this order. |
+| `universes[].id` | string |  | Universe id used in outputs. |
+| `universes[].subset` | string |  | Subset expression over the gene flags (e.g. all, no_masked). |
+| `min_size` | integer | `10` | Sets with fewer genes in a universe are not scored there (also ssGSEA minSize). |
+| `prior_count` | number | `2` | Prior count of the log2 CPM. |
+| `norm_method` | string (TMM, RLE, upperquartile, none) | `"TMM"` | Library normalisation of the log2 CPM. |
+| `figure_universe` | string or null | `null` | Universe of the signature_scores figure (null: the first). |
+| `figure_method` | string or null | `null` | Method of the signature_scores figure (null: the first). |
 
 ## 16 pairing
 
@@ -620,3 +657,32 @@ Parameters (`modules.reference_axis`):
 | `sample_scores` | boolean | `true` | Per-sample axis scores (needs counts). |
 | `prior_count` | number | `2` | Prior count of the log2 CPM of the sample scores. |
 | `norm_method` | string (TMM, RLE, upperquartile, none) | `"TMM"` | Library normalisation of the sample scores. |
+
+## 21 de_heatmap
+
+Status: implemented (`run_de_heatmap`). Output folder: `21_de_heatmap/`.
+
+- Data levels: `contrast_stats`, `counts`
+- Optional levels: `normalized`
+- Resources: none
+- Conditions: `significance_available: true`
+- Provides: none
+- Tables: `de_heatmap_genes`, `de_heatmap_values`
+- Figures: `de_heatmap`
+
+Caveats:
+
+- Rows are z-scores across the samples shown: colours compare samples within a gene, not genes with each other.
+- Genes are selected on the same samples, so their separation of the groups is expected and only descriptive.
+
+Parameters (`modules.de_heatmap`):
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
+| `contrasts` | array of string | `[]` | Contrast ids drawn, in this order (empty = every contrast with a significance metric). |
+| `n_top` | integer | `50` | Most significant genes classified UP or DOWN by the project thresholds, per contrast. |
+| `per_direction` | boolean | `false` | Take up to half of n_top from each direction (UP and DOWN), so that the strongest direction does not fill the heatmap. |
+| `values` | string (auto, normalized, median_of_ratios) | `"auto"` | Normalised counts shown. normalized: the normalized input; median_of_ratios: counts divided by DESeq2 size factors computed on the genes of the contrast table; auto: normalized when present, else median_of_ratios. |
+| `cluster_rows` | boolean | `true` | Order the genes by hierarchical clustering (complete linkage) of their z-scores. |
+| `z_limit` | number | `2.5` | Limit of the colour scale; larger absolute z-scores are drawn at the limit. |
