@@ -5,7 +5,7 @@ project:
   output_dir: ../../results/example_star
   seed: 1
 toolkit:
-  version: 0.2.0
+  version: 0.3.0
 samples:
   sheet: ../../tests/fixtures/scenario_a/samples.tsv
   factors:

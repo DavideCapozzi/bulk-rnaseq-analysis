@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-05
+
 ### Added
 
 - `markers` module (04): per-sample expression of marker panels (gene lists or inline symbols, optional biotype
@@ -61,9 +63,9 @@ All notable changes to this project are documented here. The format follows
   `subcollection`, `set_pattern`) instead of names, `universes` are `{id, subset}` as in `power`; new `resource`,
   `estimator`, `contrasts`, `seed`, `leading_edge_max`, `concordance_collections` and figure parameters. The
   section is now strict. The registry figure `hallmark_heatmap` is now `nes_heatmap` (any collection).
-- Schema sections of the modules that are not implemented (`markers`, `contamination_sets`, `deconvolution`,
-  `signatures`, `coverage`, `covariates`) accept only `enabled`: their draft parameters were never read; each
-  module's parameters are designed when it is ported. `inputs.coverage` and `inputs.checksums` have no draft
+- Schema sections of the modules that are not implemented (`contamination_sets`, `deconvolution`, `coverage`,
+  `covariates`) accept only `enabled`: their draft parameters were never read; each module's parameters are
+  designed when it is ported (as `markers` and `signatures` were in this release). `inputs.coverage` and `inputs.checksums` have no draft
   fields either (`validate_config()` still refuses them as not implemented).
 - `estimate_lfc()` computes the normalisation factors once (results unchanged).
 - `geneset_test`: cameraPR with `use_ranks: true` computes the gene ranks and the tie correction once per
