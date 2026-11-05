@@ -10,6 +10,8 @@ __pycache__/
 *.tar.gz
 *.Rcheck/
 Rplots.pdf
+# testthat >= 3.2 writes reproductions of failed expectations here
+tests/testthat/_problems/
 .Renviron
 .vscode/
 .DS_Store

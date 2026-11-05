@@ -33,6 +33,35 @@ All notable changes to this project are documented here. The format follows
   `subcollection`, `set_pattern`) instead of names, `universes` are `{id, subset}` as in `power`; new `resource`,
   `estimator`, `contrasts`, `seed`, `leading_edge_max`, `concordance_collections` and figure parameters. The
   section is now strict. The registry figure `hallmark_heatmap` is now `nes_heatmap` (any collection).
+- Schema sections of the modules that are not implemented (`markers`, `contamination_sets`, `deconvolution`,
+  `signatures`, `coverage`, `covariates`) accept only `enabled`: their draft parameters were never read; each
+  module's parameters are designed when it is ported. `inputs.coverage` and `inputs.checksums` have no draft
+  fields either (`validate_config()` still refuses them as not implemented).
+- `estimate_lfc()` computes the normalisation factors once (results unchanged).
+- `geneset_test`: cameraPR with `use_ranks: true` computes the gene ranks and the tie correction once per
+  contrast instead of once per gene set (`limma::cameraPR` recomputes them for every set); the results are
+  identical (a test compares them with limma); on a real project with three collections the module runs in 33 s
+  instead of 170 s.
+
+### Fixed
+
+- Schema: the descriptions of `inputs.normalized.description` and `contrasts[].numerator` contained a comma
+  inside a flow mapping, which YAML read as a second, empty key.
+
+### Documentation
+
+- Every parameter of the config schema has a description (a test fails otherwise); `docs/CONFIG.md` is generated
+  from the schema for every section other than `modules`, next to `docs/MODULES.md`, by `tools/make_docs.R`
+  (formerly `tools/make_modules_doc.R`); generated parameter tables now include nullable objects
+  (`pca.orient_pc1.*`) and maps of objects (`resources.items.<key>.*`).
+- README: steps of a new project and a typical provider case.
+
+### Workflow
+
+- `bulkrnaseq plan|fetch|run` default to `--cores` = min(4, CPUs) instead of 1: every step is a separate R process
+  with its own seeds, so the outputs are byte-identical for any number of cores (checked on two projects).
+- Snakemake `benchmark:` files per step in `00_provenance/benchmarks/` (wall time, CPU time, peak memory); like
+  `run_timestamps.json` they vary between runs and are excluded from the byte-for-byte comparison of the CI.
 
 ## [0.2.0] - 2026-10-29
 

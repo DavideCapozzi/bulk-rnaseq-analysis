@@ -138,3 +138,18 @@ test_that("module tables accept only known inference scopes", {
   res$tables$t$inference_scope <- "ranking_only"
   expect_silent(write_module_outputs(res, tempfile()))
 })
+
+test_that("camera_pr_ranks() is identical to limma::cameraPR(use.ranks = TRUE)", {
+  set.seed(3)
+  with_ties <- stats::setNames(round(stats::rnorm(500), 1), paste0("g", 1:500))
+  no_ties <- stats::setNames(stats::rnorm(500), paste0("g", 1:500))
+  index <- list(one = 7L, small = c(1L, 5L, 9L), large = sample(500, 120), shifted = order(no_ties)[1:40])
+  for (stat in list(with_ties, no_ties)) {
+    for (igc in c(0, 0.01, 0.05)) {
+      expect_identical(
+        camera_pr_ranks(stat, index, igc),
+        limma::cameraPR(stat, index, inter.gene.cor = igc, use.ranks = TRUE, sort = FALSE)
+      )
+    }
+  }
+})

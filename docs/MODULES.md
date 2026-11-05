@@ -1,8 +1,8 @@
 # Modules
 
-<!-- Generated from inst/modules.yaml and inst/schema/schema.yaml by `Rscript tools/make_modules_doc.R`; do not edit by hand (a test fails when this file is out of date). -->
+<!-- Generated from inst/modules.yaml and inst/schema/schema.yaml by `Rscript tools/make_docs.R`; do not edit by hand (a test fails when this file is out of date). -->
 
-Every module declares the data levels it needs. A module whose needs are not met, or that is not implemented yet, is skipped with the reason in `00_provenance/capabilities.json` and `report/summary.md`. Defaults come from the config schema; `bulkrnaseq plan <config>` shows what a project runs.
+Every module declares the data levels it needs. A module whose needs are not met, or that is not implemented yet, is skipped with the reason in `00_provenance/capabilities.json` and `report/summary.md`. Defaults come from the config schema; `bulkrnaseq plan <config>` shows what a project runs. The other sections of the config are in [CONFIG.md](CONFIG.md).
 
 19 modules: 13 implemented, 6 not implemented.
 
@@ -32,8 +32,8 @@ Schema types used below:
 
 - `file_or_pattern`: Path relative to inputs.base_dir. May contain the placeholder {input}, replaced by each value of the sample sheet column input_column (one file per sample).
 - `gene_list_ref`: Key of a gene list in resources.gene_lists, or an inline list of gene symbols.
-- `seed`: integer
-- `threshold_list`: array of number
+- `seed`: Non-negative integer seed of a random number generator.
+- `threshold_list`: Non-negative thresholds (e.g. \|log2 fold change\| cut-offs).
 
 ## 02 qc
 
@@ -57,12 +57,12 @@ Parameters (`modules.qc`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `top_n_share` | integer | `50` |  |
-| `top_n_list` | integer | `15` |  |
-| `ribosomal_protein_regex` | string | `"^RP[SL][0-9]+[A-Z]?[0-9]*$"` |  |
-| `hemoglobin_genes` | gene_list_ref | `"hemoglobin"` |  |
-| `rrna_biotypes` | array of string | `["rRNA","Mt_rRNA","rRNA_pseudogene"]` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
+| `top_n_share` | integer | `50` | N of pct_counts_top<N>_genes, the share of reads in the N most expressed genes. |
+| `top_n_list` | integer | `15` | Most expressed genes listed per sample in top_genes. |
+| `ribosomal_protein_regex` | string | `"^RP[SL][0-9]+[A-Z]?[0-9]*$"` | Regular expression on the symbols of protein-coding ribosomal-protein genes. |
+| `hemoglobin_genes` | gene_list_ref | `"hemoglobin"` | Hemoglobin genes. |
+| `rrna_biotypes` | array of string | `["rRNA","Mt_rRNA","rRNA_pseudogene"]` | Biotypes counted as rRNA. |
 | `figure_metrics` | array of string | `["library_size","genes_count_ge10","pct_counts_mito","pct_counts_rrna","pct_counts_protein_coding","pct_counts_top50_genes"]` | Metrics shown in the qc_metrics figure (absent ones are skipped). |
 
 ## 03 pca
@@ -87,20 +87,22 @@ Parameters (`modules.pca`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `transforms` | array of string (vst, logcpm_tmm) | `["vst","logcpm_tmm"]` |  |
-| `ntop` | array of integer or string | `[500,1000,2000,"all"]` |  |
-| `sex_gene_variants` | array of string | `["keep","drop_xist_y","drop_xy"]` |  |
-| `gene_subsets` | array of string | `"all"` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
+| `transforms` | array of string (vst, logcpm_tmm) | `["vst","logcpm_tmm"]` | Transforms of the grid: vst (DESeq2) and logcpm_tmm (log2 CPM after TMM). |
+| `ntop` | array of integer or string | `[500,1000,2000,"all"]` | Numbers of most variable genes of the grid (all: every filtered gene). |
+| `sex_gene_variants` | array of string | `["keep","drop_xist_y","drop_xy"]` | gene_filter.sex_genes values of the grid. |
+| `gene_subsets` | array of string | `"all"` | Gene subset expressions of the grid. |
 | `symbol_exclusion_variants` | array of string | `[]` | Regexes on gene symbols (e.g. "^HLA-"); each adds a variant of the grid without the matching genes, besides the variant without exclusion. |
 | `thinning` | boolean | `false` | Adds a variant on counts thinned to the smallest library (edgeR::thinCounts, project.seed). |
 | `separation_factors` | array of string | `[]` | Factors labelled in pca_summary (default: all samples.factors, in order). |
 | `orient_pc1` | object or null | `null` | Orients PC1 so that samples at this level have positive mean score (drivers, pc1_order). |
-| `abundance_sex_genes` | string (keep, drop_xist_y, drop_xy) | `"keep"` |  |
-| `scores_ntop` | integer or string | `1000` |  |
-| `pc_drivers` | boolean | `true` |  |
-| `qc_metrics_for_drivers` | array of string | `[]` |  |
-| `top_loadings` | integer | `40` |  |
+| `orient_pc1.factor` | string |  | Sample sheet factor. |
+| `orient_pc1.level` | string |  | Level whose samples get a positive mean PC1 score. |
+| `abundance_sex_genes` | string (keep, drop_xist_y, drop_xy) | `"keep"` | sex_genes rule of the PCA on log2(TPM + 1). |
+| `scores_ntop` | integer or string | `1000` | Number of most variable genes of pca_scores (a value of ntop). |
+| `pc_drivers` | boolean | `true` | Report PC1 drivers on VST (correlation with QC metrics, loadings against gene features). |
+| `qc_metrics_for_drivers` | array of string | `[]` | QC metrics correlated with the PCs in pc1_vs_qc (absent ones are skipped; empty: none). |
+| `top_loadings` | integer | `40` | Genes with the largest absolute PC1 loading in pc1_top_loadings. |
 
 ## 04 markers
 
@@ -118,19 +120,11 @@ Caveats:
 
 - Panels are starting markers, not validated signatures. CPM are library-size only (no TMM) unless stated.
 
-Parameters (`modules.markers`; draft, not read by any code yet):
+Parameters (`modules.markers`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `panels` | string | `"marker_panels"` |  |
-| `pseudocount` | number | `1` |  |
-| `ratios` | array of object | `[]` |  |
-| `ratios[].id` | string |  |  |
-| `ratios[].numerator_gene` | string |  |  |
-| `ratios[].denominator_gene` | string |  |  |
-| `ratios[].numerator_sample` | string |  |  |
-| `ratios[].denominator_sample` | string |  |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 
 ## 05 contamination
 
@@ -154,32 +148,32 @@ Parameters (`modules.contamination`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 | `profiles` | array of object | `[]` | Gene profiles of contaminating (or reference) cells, scored per sample on CPM of all genes. |
-| `profiles[].id` | string |  |  |
-| `profiles[].genes` | gene_list_ref |  |  |
+| `profiles[].id` | string |  | Profile id. |
+| `profiles[].genes` | gene_list_ref |  | Genes of the profile. |
 | `reference_profile` | string or null | `null` | Profile id whose CPM sum is also reported relative to the sample with the largest value (rel_to_max). |
 | `ratio_pseudocount` | number | `1` | CPM added before the log2 ratios of ratio_checks. |
 | `ratio_checks` | array of object | `[]` | Per-gene log2 CPM ratios between two samples over a profile's genes. |
-| `ratio_checks[].id` | string |  |  |
-| `ratio_checks[].profile` | string |  |  |
-| `ratio_checks[].numerator_sample` | string |  |  |
-| `ratio_checks[].denominator_sample` | string |  |  |
+| `ratio_checks[].id` | string |  | Check id. |
+| `ratio_checks[].profile` | string |  | Profile id whose genes are compared. |
+| `ratio_checks[].numerator_sample` | string |  | sample_id of the numerator. |
+| `ratio_checks[].denominator_sample` | string |  | sample_id of the denominator. |
 | `excess_checks` | array of object | `[]` | CPM of genes above the mean of baseline_samples, divided by the CPM sum of a profile, in two samples, and the ratio of the two excesses (a similar ratio for genes and profile is compatible with the genes coming from the profile's cells). |
-| `excess_checks[].id` | string |  |  |
-| `excess_checks[].genes` | gene_list_ref |  |  |
-| `excess_checks[].profile` | string |  |  |
-| `excess_checks[].baseline_samples` | array of string |  |  |
-| `excess_checks[].samples` | array of string |  |  |
+| `excess_checks[].id` | string |  | Check id. |
+| `excess_checks[].genes` | gene_list_ref |  | Genes whose excess is measured. |
+| `excess_checks[].profile` | string |  | Profile id whose CPM sum divides the excess. |
+| `excess_checks[].baseline_samples` | array of string |  | sample_ids whose mean CPM is the baseline. |
+| `excess_checks[].samples` | array of string |  | The two sample_ids compared. |
 | `mask` | object | `{}` | masked = (in any include group and in no exclude group) or among the genes of add_profiles. Groups are gene sets of an MSigDB export (resource); their genes match by Ensembl ID (by symbol when annotation.id_type is gene_symbol). |
 | `mask.resource` | string or null | `null` | Key of an msigdb_export in resources.items. |
-| `mask.include` | array of object | `[]` |  |
-| `mask.include[].id` | string |  |  |
-| `mask.include[].sets` | array of string |  |  |
-| `mask.exclude` | array of object | `[]` |  |
-| `mask.exclude[].id` | string |  |  |
-| `mask.exclude[].sets` | array of string |  |  |
-| `mask.add_profiles` | array of string | `[]` |  |
+| `mask.include` | array of object | `[]` | Groups of gene sets whose genes are masked. |
+| `mask.include[].id` | string |  | Group id (gene flag column of contaminant_mask). |
+| `mask.include[].sets` | array of string |  | Gene set names (gs_name) of the MSigDB export. |
+| `mask.exclude` | array of object | `[]` | Groups of gene sets whose genes are not masked, even when in an include group. |
+| `mask.exclude[].id` | string |  | Group id (gene flag column of contaminant_mask). |
+| `mask.exclude[].sets` | array of string |  | Gene set names (gs_name) of the MSigDB export. |
+| `mask.add_profiles` | array of string | `[]` | Profile ids whose genes are always masked. |
 
 ## 06 contamination_sets
 
@@ -197,13 +191,11 @@ Caveats:
 
 - Gene-set test of contaminant profiles on one contrast; p-values follow the contrast's inference_scope.
 
-Parameters (`modules.contamination_sets`; draft, not read by any code yet):
+Parameters (`modules.contamination_sets`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `method` | string (camera_pr) | `"camera_pr"` |  |
-| `inter_gene_cor` | number | `0.01` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 
 ## 07 reference
 
@@ -226,9 +218,9 @@ Parameters (`modules.reference`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 | `profiles` | array of object | `[]` | Reference expression of one cell type from an HPA export: nTPM for kind hpa_immune_cell, nCPM for hpa_single_cell (kind of the resource in resources.items). |
-| `profiles[].id` | string |  |  |
+| `profiles[].id` | string |  | Profile id. |
 | `profiles[].resource` | string |  | Key in resources.items. |
 | `profiles[].cell` | string |  | Value of the 'Immune cell' or 'Cell type' column. |
 | `target` | string or null | `null` | Profile id of the target cells. |
@@ -255,16 +247,11 @@ Caveats:
 - Relative proportions between reference components; weights do not sum to 1 across platforms.
 - Report the range across variants, not a point estimate.
 
-Parameters (`modules.deconvolution`; draft, not read by any code yet):
+Parameters (`modules.deconvolution`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `components` | object | `{}` |  |
-| `marker_min_expr` | number | `50` |  |
-| `marker_specificity` | number | `10` |  |
-| `solver` | string (optim_lbfgsb, lawson_hanson) | `"optim_lbfgsb"` |  |
-| `variants` | array | `[]` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 
 ## 09 contrasts
 
@@ -287,14 +274,14 @@ Parameters (`modules.contrasts`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `estimators` | array of string (logcpm_difference, deseq2_apeglm) | `"logcpm_difference"` |  |
-| `prior_count` | number | `2` |  |
-| `norm_method` | string (TMM, RLE, upperquartile, none, reference) | `"TMM"` |  |
-| `reference_genes` | null or | `null` |  |
-| `dispersion_design` | string or null | `null` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
+| `estimators` | array of string (logcpm_difference, deseq2_apeglm) | `"logcpm_difference"` | logcpm_difference: difference of mean log2 CPM (any contrast, no p-value); deseq2_apeglm: apeglm-shrunken DESeq2 fold changes of one-vs-one contrasts (needs dispersion_design). |
+| `prior_count` | number | `2` | Prior count of the log2 CPM of logcpm_difference. |
+| `norm_method` | string (TMM, RLE, upperquartile, none, reference) | `"TMM"` | Library normalisation of logcpm_difference (reference: factors computed on reference_genes). |
+| `reference_genes` | null or | `null` | Genes of norm_method reference. |
+| `dispersion_design` | string or null | `null` | Id of the designs[] entry whose dispersions deseq2_apeglm uses (at least 1 residual degree of freedom). |
 | `spread_subsets` | array of string | `"all"` | Gene subsets of contrast_spread. |
-| `spread_threshold` | number | `1` |  |
+| `spread_threshold` | number | `1` | \|log2 fold change\| counted in contrast_spread (n_abs_lfc_gt_threshold). |
 
 ## 10 de_test
 
@@ -317,14 +304,14 @@ Parameters (`modules.de_test`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 | `prefilter` | object | `{"min_count":10,"min_samples":3}` | Genes with at least min_count reads in at least min_samples samples are tested. |
-| `prefilter.min_count` | integer |  |  |
-| `prefilter.min_samples` | integer |  |  |
+| `prefilter.min_count` | integer |  | Reads a gene needs in at least min_samples samples. |
+| `prefilter.min_samples` | integer |  | Number of samples in which a gene needs min_count reads. |
 | `results_alpha` | number | `0.1` | alpha of DESeq2::results(), the FDR target of independent filtering (DESeq2 default 0.1). |
 | `compare_with` | array of object | `[]` | Computed design vs imported contrast table, reported in provider_comparison. |
-| `compare_with[].design` | string |  |  |
-| `compare_with[].contrast_table` | string |  |  |
+| `compare_with[].design` | string |  | Design id. |
+| `compare_with[].contrast_table` | string |  | Id of an inputs.contrast_tables entry. |
 
 ## 11 concordance
 
@@ -347,9 +334,9 @@ Parameters (`modules.concordance`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `thresholds` | threshold_list | `[0.58,1]` |  |
-| `subsets` | array of string | `"all"` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
+| `thresholds` | threshold_list | `[0.58,1]` | \|log2 fold change\| thresholds of the concordance counts. |
+| `subsets` | array of string | `"all"` | Gene subset expressions summarised. |
 
 ## 12 geneset_test
 
@@ -372,27 +359,27 @@ Parameters (`modules.geneset_test`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 | `resource` | string | `"gene_sets"` | Key of an msigdb_export in resources.items. |
 | `estimator` | string or null | `null` | Method of the contrast tables whose log2 fold changes rank the genes (e.g. logcpm_difference); null: the first method available. |
 | `contrasts` | array of string | `[]` | Contrast ids to test, in this order (empty = every contrast of the estimator, config order). |
-| `methods` | array of string (camera_pr, fgsea) | `"camera_pr"` |  |
+| `methods` | array of string (camera_pr, fgsea) | `"camera_pr"` | camera_pr: limma::cameraPR; fgsea: pre-ranked fgsea (multilevel). |
 | `collections` | array of object | `[{"id":"H","collection":"H"}]` | Gene set collections of the export: gs_collection, optional gs_subcollection and a regular expression on gs_name. P-values are adjusted over all collections together. |
-| `collections[].id` | string |  |  |
-| `collections[].collection` | string |  |  |
-| `collections[].subcollection` | string or null | `null` |  |
-| `collections[].set_pattern` | string or null | `null` |  |
+| `collections[].id` | string |  | Collection id used in outputs. |
+| `collections[].collection` | string |  | gs_collection of the export (e.g. H, C2, C7). |
+| `collections[].subcollection` | string or null | `null` | gs_subcollection (e.g. CP:REACTOME; null: any). |
+| `collections[].set_pattern` | string or null | `null` | Regular expression on gs_name (null: every set). |
 | `universes` | array of object | `[{"id":"all","subset":"all"}]` | Ranked genes, as subset expressions over the genes of the contrast tables; tested in this order. |
-| `universes[].id` | string |  |  |
-| `universes[].subset` | string |  |  |
-| `min_size` | integer | `15` |  |
-| `max_size` | integer | `500` |  |
+| `universes[].id` | string |  | Universe id used in outputs. |
+| `universes[].subset` | string |  | Subset expression over the gene flags (e.g. all, no_masked). |
+| `min_size` | integer | `15` | Smallest set size within the universe. |
+| `max_size` | integer | `500` | Largest set size within the universe. |
 | `inter_gene_cor` | array of number | `0.01` | cameraPR variants. |
 | `use_ranks` | array of boolean | `false` | cameraPR variants. |
 | `fgsea_tie_jitter_sd` | number | `1e-06` | SD of the normal noise added to the ranking statistic before fgsea, to break ties reproducibly (0: none). Genes are ordered by decreasing expression, then feature_id, before the draw. |
 | `seed` | integer or null | `null` | Seed set once before fgsea (universes outer, contrasts inner, on one random stream); null: project.seed. |
 | `leading_edge_max` | integer | `15` | Leading-edge symbols reported per set. |
-| `alpha` | number | `0.05` |  |
+| `alpha` | number | `0.05` | Adjusted p-value threshold of the counts, the concordance and the figures. |
 | `concordance_collections` | array of string | `[]` | Collection ids summarised in geneset_concordance (empty = all). |
 | `figure_universe` | string or null | `null` | Universe of nes_concordance (null: the first). |
 | `figure_collections` | array of string | `[]` | Collection ids drawn in nes_concordance (empty = all). |
@@ -418,11 +405,11 @@ Parameters (`modules.ora`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `databases` | array of string (GO_BP, GO_CC, GO_MF, KEGG, Reactome) | `["GO_BP","GO_CC","GO_MF","KEGG","Reactome"]` |  |
-| `p_adjust_method` | string | `"BH"` |  |
-| `pvalue_cutoff` | number | `0.05` |  |
-| `show_category` | integer | `15` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
+| `databases` | array of string (GO_BP, GO_CC, GO_MF, KEGG, Reactome) | `["GO_BP","GO_CC","GO_MF","KEGG","Reactome"]` | Databases tested (KEGG needs the kegg_pathways resource). |
+| `p_adjust_method` | string | `"BH"` | pAdjustMethod of clusterProfiler. |
+| `pvalue_cutoff` | number | `0.05` | pvalueCutoff of clusterProfiler (terms are kept when p-value and adjusted p-value are below it). |
+| `show_category` | integer | `15` | Terms per contrast in the ORA figures (lowest adjusted p-value first). |
 
 ## 14 volcano
 
@@ -444,8 +431,8 @@ Parameters (`modules.volcano`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `label_top` | integer | `15` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
+| `label_top` | integer | `15` | Significant genes labelled per volcano (most significant first). |
 
 ## 15 signatures
 
@@ -463,16 +450,11 @@ Caveats:
 
 - z-score is relative to the samples in the run; singscore and ssGSEA are within-sample ranks.
 
-Parameters (`modules.signatures`; draft, not read by any code yet):
+Parameters (`modules.signatures`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `methods` | array of string (zscore, ssgsea, singscore) | `["zscore","singscore"]` |  |
-| `sets` | array of string | `[]` |  |
-| `composites` | array | `[]` |  |
-| `min_size` | integer | `10` |  |
-| `universes` | array of string | `"all"` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 
 ## 16 pairing
 
@@ -497,19 +479,19 @@ Parameters (`modules.pairing`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `sex_genes` | gene_list_ref | `"sex_genes"` |  |
-| `xist_genes` | gene_list_ref | `"xist"` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
+| `sex_genes` | gene_list_ref | `"sex_genes"` | Sex-chromosome genes of the sex check (those on chrX or chrY). |
+| `xist_genes` | gene_list_ref | `"xist"` | XIST gene(s). |
 | `group_column` | string or null | `null` | Sample sheet column with the hypothesised donor or pool (equal values = same donor). Its pairs are labelled in fingerprint_distances and checked in pairing_summary. |
 | `across_factor` | string or null | `null` | Two-level factor that each donor is expected to span (e.g. the sorted fraction). |
-| `fingerprint_variants` | array of object | `[{"id":"fingerprint","genes":"fingerprint_genes"}]` |  |
-| `fingerprint_variants[].id` | string |  |  |
-| `fingerprint_variants[].genes` | gene_list_ref |  |  |
+| `fingerprint_variants` | array of object | `[{"id":"fingerprint","genes":"fingerprint_genes"}]` | Gene sets of the expression fingerprint, each giving pairwise sample distances. |
+| `fingerprint_variants[].id` | string |  | Variant id. |
+| `fingerprint_variants[].genes` | gene_list_ref |  | Genes of the fingerprint. |
 | `fingerprint_variants[].normalization` | string (cpm, cpm_tmm) | `"cpm"` | CPM on all genes, or TMM-normalised CPM on the genes kept by gene_filter (sex genes kept). |
 | `fingerprint_variants[].min_total_count` | integer | `0` | Genes with fewer reads over all samples are dropped. |
 | `male_reference_samples` | array of string | `[]` | sample_ids taken as all-male material (XIST about 0); male fractions are relative to their mean. Empty: the male fraction is not estimated. |
-| `sex_denominators` | array of object | `[{"id":"chr_y"}]` |  |
-| `sex_denominators[].id` | string |  |  |
+| `sex_denominators` | array of object | `[{"id":"chr_y"}]` | Male-fraction estimates, relative to male_reference_samples. |
+| `sex_denominators[].id` | string |  | Estimate id (column male_fraction_<id>). |
 | `sex_denominators[].numerator` | gene_list_ref |  | Genes summed in the numerator (default the chrY genes of sex_genes). |
 | `sex_denominators[].denominator` | gene_list_ref |  | Genes summed in the denominator (default none). |
 
@@ -535,23 +517,23 @@ Parameters (`modules.power`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 | `design` | string or null | `null` | Id of a designs[] entry (default: the first). |
 | `universes` | array of object | `[{"id":"all","subset":"all"}]` | Gene sets of the BCV, as subset expressions over the filtered genes (e.g. in_reference_universe+no_masked); estimated in this order on one random stream. |
-| `universes[].id` | string |  |  |
-| `universes[].subset` | string |  |  |
-| `bootstrap_replicates` | integer | `200` |  |
+| `universes[].id` | string |  | Universe id used in outputs. |
+| `universes[].subset` | string |  | Subset expression over the filtered genes. |
+| `bootstrap_replicates` | integer | `200` | Bootstrap samples of genes for the interval of the common BCV. |
 | `reference_scenario` | object | `{}` | Scenario of the n_hart_* columns of the bcv table. |
-| `reference_scenario.mu` | number | `100` |  |
-| `reference_scenario.fold_change` | number | `2` |  |
-| `reference_scenario.alpha` | number | `0.01` |  |
-| `grid` | object | `{}` |  |
-| `grid.cv` | array of number | `[0.2,0.3,0.4,0.6]` |  |
+| `reference_scenario.mu` | number | `100` | Mean count. |
+| `reference_scenario.fold_change` | number | `2` | Fold change to detect. |
+| `reference_scenario.alpha` | number | `0.01` | Two-sided significance level. |
+| `grid` | object | `{}` | Grid of sample_size_grid. |
+| `grid.cv` | array of number | `[0.2,0.3,0.4,0.6]` | Biological coefficients of variation. |
 | `grid.cv_labels` | array of string | `[]` | One label per cv value (the assumption behind it); empty for none. |
-| `grid.mu` | array of number | `[20,100]` |  |
-| `grid.fold_change` | array of number | `[1.5,2]` |  |
-| `grid.alpha` | array of number | `[0.01,0.001]` |  |
-| `grid.power` | number | `0.8` |  |
+| `grid.mu` | array of number | `[20,100]` | Mean counts. |
+| `grid.fold_change` | array of number | `[1.5,2]` | Fold changes to detect. |
+| `grid.alpha` | array of number | `[0.01,0.001]` | Two-sided significance levels. |
+| `grid.power` | number | `0.8` | Target power. |
 
 ## 18 coverage
 
@@ -569,15 +551,11 @@ Caveats:
 
 - bedGraph values from STAR are RPM of mapped reads; ratios between samples depend on that normalisation.
 
-Parameters (`modules.coverage`; draft, not read by any code yet):
+Parameters (`modules.coverage`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `target_genes` | gene_list_ref | `[]` |  |
-| `normalizer_genes` | gene_list_ref | `[]` |  |
-| `flank_bp` | integer | `10000` |  |
-| `window_bp` | integer | `500` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 
 ## 19 covariates
 
@@ -595,13 +573,11 @@ Caveats:
 
 - Regressing lfc on length, GC and expression also removes biology correlated with them.
 
-Parameters (`modules.covariates`; draft, not read by any code yet):
+Parameters (`modules.covariates`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
-| `spline_df` | integer | `4` |  |
-| `strata` | array of string | `["ge_median","ge_q75","all"]` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 
 ## 20 reference_axis
 
@@ -624,23 +600,23 @@ Parameters (`modules.reference_axis`):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | boolean | `true` |  |
+| `enabled` | boolean | `true` | Run the module when its data levels are present. |
 | `estimator` | string or null | `null` | Method of the contrast tables whose log2 fold changes are used (null: the first method available). |
 | `contrasts` | array of string | `[]` | Contrast ids, in this order (empty = every contrast of the estimator, config order). |
 | `subset` | string | `"all"` | Genes (subset expression over the genes of the contrast tables) of the axis correlations, the sign test and the axis-high and axis-low genes of the sample scores. |
 | `set_subset` | string | `"all"` | Genes of the mean fold change per gene set. |
 | `axes` | array of object | `[]` | Reference axes: log2((mean numerator + pseudocount) / (mean denominator + pseudocount)) of the cell types of an HPA export, per gene. |
-| `axes[].id` | string |  |  |
+| `axes[].id` | string |  | Axis id used in outputs. |
 | `axes[].resource` | string |  | Key of an hpa_immune_cell or hpa_single_cell export. |
-| `axes[].numerator` | array of string |  |  |
-| `axes[].denominator` | array of string |  |  |
-| `axes[].pseudocount` | number | `1` |  |
+| `axes[].numerator` | array of string |  | Cell types of the numerator (values of the export's cell column). |
+| `axes[].denominator` | array of string |  | Cell types of the denominator. |
+| `axes[].pseudocount` | number | `1` | Added to the mean expressions before the log2 ratio. |
 | `axes[].threshold` | number | `1` | Genes with axis >= threshold (high) and <= -threshold (low) define the sample scores. |
-| `gene_sets` | object | `{}` |  |
+| `gene_sets` | object | `{}` | Gene sets of an MSigDB export whose mean fold change is reported. |
 | `gene_sets.resource` | string or null | `null` | Key of an msigdb_export in resources.items. |
 | `gene_sets.sets` | array of string | `[]` | Sets whose mean fold change is reported. |
-| `sign_test` | object | `{}` |  |
+| `sign_test` | object | `{}` | Sign agreement of contrast pairs. |
 | `sign_test.threshold` | number or null | `null` | \|log2 fold change\| that both contrasts of each contrast pair must exceed; the fraction with the same sign gets a two-sided binomial p-value (descriptive: genes are not independent). null: no test. |
 | `sample_scores` | boolean | `true` | Per-sample axis scores (needs counts). |
-| `prior_count` | number | `2` |  |
-| `norm_method` | string (TMM, RLE, upperquartile, none) | `"TMM"` |  |
+| `prior_count` | number | `2` | Prior count of the log2 CPM of the sample scores. |
+| `norm_method` | string (TMM, RLE, upperquartile, none) | `"TMM"` | Library normalisation of the sample scores. |

@@ -22,14 +22,17 @@ $defs:
       - type: array
         items: {type: string}
   seed:
+    description: Non-negative integer seed of a random number generator.
     type: integer
     minimum: 0
   threshold_list:
+    description: Non-negative thresholds (e.g. |log2 fold change| cut-offs).
     type: array
     items: {type: number, minimum: 0}
 
 properties:
   project:
+    description: Project identity, output folder and default seed.
     type: object
     additionalProperties: false
     required: [name, output_dir]
@@ -51,6 +54,7 @@ properties:
       version: {type: string, pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$", description: "Toolkit version, e.g. 0.1.0."}
 
   samples:
+    description: Sample sheet and experimental factors.
     type: object
     additionalProperties: false
     required: [sheet]
@@ -75,20 +79,32 @@ properties:
         description: Optional sample sheet column used as plot label.
 
   inputs:
+    description: >-
+      Provider files. Every data level is optional; modules that need a missing level are skipped with the reason.
     type: object
     additionalProperties: false
     properties:
       base_dir: {type: string, description: Folder all input paths are relative to.}
       counts:
+        description: Raw read counts per gene and sample (integers).
         type: object
         additionalProperties: false
         required: [adapter]
         properties:
-          adapter: {type: string, enum: [star_reads_per_gene, matrix]}
-          files: {$ref: "#/$defs/file_or_pattern"}
-          file: {type: string}
-          sheet: {type: [string, "null"], default: null}
-          id_column: {type: string}
+          adapter:
+            type: string
+            enum: [star_reads_per_gene, matrix]
+            description: >-
+              star_reads_per_gene: one STAR ReadsPerGene.out.tab per sample (files); matrix: one table, genes x
+              samples (file, id_column).
+          files: {$ref: "#/$defs/file_or_pattern", description: "STAR files, one per sample (star_reads_per_gene)."}
+          file:
+            type: string
+            description: >-
+              TSV or Excel table, genes x samples (matrix); value columns are matched to the sample sheet's
+              input_column.
+          sheet: {type: [string, "null"], default: null, description: "Excel sheet (matrix; null: the first sheet)."}
+          id_column: {type: string, description: Column with the gene identifiers (matrix).}
           strand_column:
             type: string
             enum: [unstranded, forward, reverse, single]
@@ -96,70 +112,105 @@ properties:
             description: >
               STAR ReadsPerGene.out.tab has 4 columns (unstranded, forward, reverse); 'single' is for the
               2-column 'deseq2-ready' files where the provider already chose the strand.
-          on_duplicate: {type: string, enum: [error, sum, first], default: error}
+          on_duplicate:
+            type: string
+            enum: [error, sum, first]
+            default: error
+            description: "Rows with the same gene identifier: error stops, sum adds them, first keeps the first."
       abundance:
+        description: Gene abundances (TPM, FPKM) per sample.
         type: object
         additionalProperties: false
         required: [adapter]
         properties:
-          adapter: {type: string, enum: [stringtie_gene_abundance, matrix]}
-          files: {$ref: "#/$defs/file_or_pattern"}
-          file: {type: string}
-          sheet: {type: [string, "null"], default: null}
-          id_column: {type: string}
+          adapter:
+            type: string
+            enum: [stringtie_gene_abundance, matrix]
+            description: >-
+              stringtie_gene_abundance: one StringTie gene abundance table per sample (files); matrix: one table,
+              genes x samples (file, id_column, kind).
+          files:
+            $ref: '#/$defs/file_or_pattern'
+            description: StringTie gene abundance files, one per sample (stringtie_gene_abundance).
+          file:
+            type: string
+            description: >-
+              TSV or Excel table, genes x samples (matrix); value columns are matched to the sample sheet's
+              input_column.
+          sheet: {type: [string, "null"], default: null, description: "Excel sheet (matrix; null: the first sheet)."}
+          id_column: {type: string, description: Column with the gene identifiers (matrix).}
           kind: {type: string, enum: [tpm, fpkm], description: For the matrix adapter only.}
-          on_duplicate: {type: string, enum: [error, sum, first], default: error}
+          on_duplicate:
+            type: string
+            enum: [error, sum, first]
+            default: error
+            description: "Rows with the same gene identifier: error stops, sum adds them, first keeps the first."
       normalized:
+        description: >-
+          Provider-normalised expression, kept as an assay and checked against the raw counts in 01_ingest
+          (normalization_check).
         type: object
         additionalProperties: false
         required: [adapter, file, id_column]
         properties:
-          adapter: {type: string, enum: [matrix]}
-          file: {type: string}
-          sheet: {type: [string, "null"], default: null}
-          id_column: {type: string}
-          description: {type: string, description: How the provider normalised (free text, copied to the ingest report).}
+          adapter: {type: string, enum: [matrix], description: "matrix: one table, genes x samples."}
+          file:
+            type: string
+            description: >-
+              TSV or Excel table, genes x samples; value columns are matched to the sample sheet's input_column.
+          sheet: {type: [string, "null"], default: null, description: "Excel sheet (null: the first sheet)."}
+          id_column: {type: string, description: Column with the gene identifiers.}
+          description:
+            type: string
+            description: How the provider normalised (free text, copied to the ingest report).
       contrast_tables:
+        description: Provider differential-expression tables, imported as canonical contrast tables.
         type: array
         items:
           type: object
           additionalProperties: false
           required: [id, adapter, file]
           properties:
-            id: {type: string, pattern: "^[A-Za-z0-9_]+$"}
-            adapter: {type: string, enum: [deseq2, noiseq, generic]}
-            file: {type: string}
-            sheet: {type: [string, "null"], default: null}
+            id:
+              type: string
+              pattern: ^[A-Za-z0-9_]+$
+              description: Contrast id used by the modules and in every output.
+            adapter:
+              type: string
+              enum: [deseq2, noiseq, generic]
+              description: "deseq2 and noiseq: the tools' column names; generic: columns given in columns."
+            file: {type: string, description: TSV or Excel file.}
+            sheet: {type: [string, "null"], default: null, description: "Excel sheet (null: the first sheet)."}
             columns:
               description: Mapping canonical column -> input column; required for 'generic'.
               type: object
               additionalProperties: {type: string}
-            numerator: {type: string}
-            denominator: {type: string}
-            df_residual: {type: [integer, "null"], default: null}
+            numerator:
+              type: string
+              description: Numerator group of the table, for the reader (not used by any step).
+            denominator:
+              type: string
+              description: Denominator group of the table, for the reader (not used by any step).
+            df_residual:
+              type: [integer, 'null']
+              default: null
+              description: >-
+                Residual degrees of freedom of the provider's model (n samples - rank of the design; 0 without
+                replicates). Required when the table has padj or posterior_prob: it decides whether its p-values are
+                sample-level.
       coverage:
         type: object
-        additionalProperties: false
-        required: [files]
-        properties:
-          adapter: {type: string, enum: [bedgraph], default: bedgraph}
-          files:
-            description: Pattern with {input}, {multiplicity} and {strand_file}.
-            type: string
-          multiplicity: {type: array, items: {type: string}, default: [Unique]}
-          strand_files:
-            description: Map strand_file token -> genomic strand ('+'/'-'), or 'auto' to infer it from strand_reference_genes.
-            oneOf:
-              - {type: string, enum: [auto]}
-              - {type: object, additionalProperties: {type: string, enum: ["+", "-"]}}
-            default: auto
-          strand_reference_genes: {$ref: "#/$defs/gene_list_ref", default: strand_reference_genes}
+        description: >-
+          Input of the bedGraph coverage adapter, not implemented yet; validate_config() rejects it until it is
+          ported.
       qc:
+        description: Imported QC reports.
         type: object
         additionalProperties: false
         required: [multiqc]
         properties:
           multiqc:
+            description: MultiQC HTML reports, decoded into 01_ingest/multiqc/ and joined to the QC summary.
             type: array
             minItems: 1
             items:
@@ -167,7 +218,10 @@ properties:
               additionalProperties: false
               required: [id, file]
               properties:
-                id: {type: string, pattern: "^[a-z0-9_]+$", description: Report id (names the decoded files in 01_ingest/multiqc/).}
+                id:
+                  type: string
+                  pattern: ^[a-z0-9_]+$
+                  description: Report id (names the decoded files in 01_ingest/multiqc/).
                 file:
                   type: string
                   description: >-
@@ -186,18 +240,20 @@ properties:
               MultiQC name belongs to the one sample whose input_column it contains).
       checksums:
         type: object
-        additionalProperties: false
-        required: [file]
-        properties:
-          file: {type: string}
-          exclude: {type: array, items: {type: string}, default: []}
+        description: >-
+          Input of the md5sum checksum file adapter, not implemented yet; validate_config() rejects it until it is
+          ported.
 
   resources:
+    description: Reference files (GTF, gene sets, HPA exports, KEGG) and gene lists.
     type: object
     default: {}
     additionalProperties: false
     properties:
-      cache_dir: {type: string, default: resources}
+      cache_dir:
+        type: string
+        default: resources
+        description: Folder of the retrieved resources; a relative path resolves against the config file.
       items:
         description: >
           Resources fetched by the fetch_resources rule into cache_dir. 'source' is a URL or file:// path;
@@ -207,25 +263,36 @@ properties:
           type: object
           required: [source]
           properties:
-            source: {type: string}
-            md5: {type: string, pattern: "^[0-9a-f]{32}$"}
-            version: {type: string}
+            source: {type: string, description: "URL, file:// path, or a retrieval keyword (kegg_rest)."}
+            md5:
+              type: string
+              pattern: "^[0-9a-f]{32}$"
+              description: Expected md5, checked after retrieval and before use.
+            version: {type: string, description: Release recorded in the resources manifest (e.g. Ensembl 115).}
             kind:
               type: string
               enum: [gtf, msigdb_export, hpa_immune_cell, hpa_single_cell, fasta, kegg_pathways, tsv]
+              description: File type; decides the reader.
       gene_lists:
-        description: Named gene lists (TSV with columns list, gene_symbol, source). Package defaults are in inst/extdata/gene_lists/.
+        description: >-
+          Named gene lists (TSV with columns list, gene_symbol, source). Package defaults are in
+          inst/extdata/gene_lists/.
         type: array
         items: {type: string}
         default: []
 
   annotation:
+    description: Gene annotation source and identifier type of the inputs.
     type: object
     default: {}
     additionalProperties: false
     properties:
       gtf: {type: string, default: gtf, description: Key of the GTF in resources.items.}
-      id_type: {type: string, enum: [ensembl_gene_id, gene_symbol, entrez_id], default: ensembl_gene_id}
+      id_type:
+        type: string
+        enum: [ensembl_gene_id, gene_symbol, entrez_id]
+        default: ensembl_gene_id
+        description: Type of the gene identifiers in the input files.
       symbol_source:
         type: string
         enum: [annotation, abundance]
@@ -238,11 +305,27 @@ properties:
     default: {}
     additionalProperties: false
     properties:
-      biotypes: {type: array, items: {type: string}, default: [protein_coding, lncRNA]}
-      exclude_mitochondrial: {type: boolean, default: true}
-      min_cpm: {type: number, default: 2}
-      min_samples: {type: integer, default: 2}
-      sex_genes: {type: string, enum: [keep, drop_xist_y, drop_xy], default: drop_xist_y}
+      biotypes:
+        type: array
+        items: {type: string}
+        default: [protein_coding, lncRNA]
+        description: "Gene biotypes kept (null: all)."
+      exclude_mitochondrial:
+        type: boolean
+        default: true
+        description: Drop the genes of the mitochondrial chromosome.
+      min_cpm:
+        type: number
+        default: 2
+        description: CPM (library size only) that a gene needs in at least min_samples samples.
+      min_samples: {type: integer, default: 2, description: Number of samples in which a gene needs min_cpm.}
+      sex_genes:
+        type: string
+        enum: [keep, drop_xist_y, drop_xy]
+        default: drop_xist_y
+        description: >-
+          keep: all genes; drop_xist_y: drop chrY genes and the gene list x_inactivation; drop_xy: drop chrX and chrY
+          genes.
 
   contrasts:
     description: Contrasts computed from counts.
@@ -253,10 +336,10 @@ properties:
       additionalProperties: false
       required: [id, numerator, denominator]
       properties:
-        id: {type: string, pattern: "^[A-Za-z0-9_]+$"}
-        numerator: {type: array, items: {type: string}, description: sample_ids, or "factor=level".}
-        denominator: {type: array, items: {type: string}}
-        label: {type: string}
+        id: {type: string, pattern: "^[A-Za-z0-9_]+$", description: Contrast id used in every output.}
+        numerator: {type: array, items: {type: string}, description: 'sample_ids, or "factor=level".'}
+        denominator: {type: array, items: {type: string}, description: 'sample_ids, or "factor=level".'}
+        label: {type: string, description: Free-text label shown in reports.}
 
   contrast_pairs:
     description: Pairs of contrasts expected to share an effect (used by concordance and gene-set concordance).
@@ -267,10 +350,12 @@ properties:
       additionalProperties: false
       required: [id, first, second]
       properties:
-        id: {type: string}
-        first: {type: string, description: Contrast id (keys x/y are avoided because YAML 1.1 reads 'y' as a boolean).}
-        second: {type: string}
-        label: {type: string}
+        id: {type: string, description: Pair id used in outputs.}
+        first:
+          type: string
+          description: Contrast id (keys x/y are avoided because YAML 1.1 reads 'y' as a boolean).
+        second: {type: string, description: Contrast id.}
+        label: {type: string, description: Free-text label shown in reports.}
 
   designs:
     description: Model designs for inferential DE (module de_test) and dispersion estimates.
@@ -281,36 +366,65 @@ properties:
       additionalProperties: false
       required: [id, formula]
       properties:
-        id: {type: string}
+        id:
+          type: string
+          description: Design id referenced by modules (de_test, contrasts.dispersion_design, power.design).
         formula: {type: string, description: e.g. "~ patient + condition"}
-        contrast: {type: array, items: {type: string}, minItems: 3, maxItems: 3}
-        engine: {type: string, enum: [deseq2], default: deseq2}
+        contrast:
+          type: array
+          items: {type: string}
+          minItems: 3
+          maxItems: 3
+          description: >-
+            [factor, numerator level, denominator level] tested by de_test; absent: the design only provides
+            dispersions.
+        engine: {type: string, enum: [deseq2], default: deseq2, description: Fitting engine (DESeq2 only).}
 
   thresholds:
+    description: Significance and fold-change thresholds of de_test, volcano and ORA.
     type: object
     default: {}
     additionalProperties: false
     properties:
-      padj: {type: number, default: 0.05}
+      padj:
+        type: number
+        default: 0.05
+        description: Adjusted p-value threshold (tables whose significance_metric is padj).
       abs_fold_change: {type: number, default: 1.5, description: Linear |fold change|; log2 threshold is derived.}
-      posterior_prob: {type: number, default: 0.8}
+      posterior_prob:
+        type: number
+        default: 0.8
+        description: >-
+          Posterior probability threshold (tables whose significance_metric is posterior_prob, e.g. NOISeq).
 
   modules:
+    description: Parameters of the analysis modules, one section per module (docs/MODULES.md).
     type: object
     additionalProperties: false
     default: {}
     properties:
       qc:
+        description: Expression QC per sample.
         type: object
         default: {}
         additionalProperties: false
         properties:
-          enabled: {type: boolean, default: true}
-          top_n_share: {type: integer, default: 50}
-          top_n_list: {type: integer, default: 15}
-          ribosomal_protein_regex: {type: string, default: "^RP[SL][0-9]+[A-Z]?[0-9]*$"}
-          hemoglobin_genes: {$ref: "#/$defs/gene_list_ref", default: hemoglobin}
-          rrna_biotypes: {type: array, items: {type: string}, default: [rRNA, Mt_rRNA, rRNA_pseudogene]}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          top_n_share:
+            type: integer
+            default: 50
+            description: N of pct_counts_top<N>_genes, the share of reads in the N most expressed genes.
+          top_n_list: {type: integer, default: 15, description: Most expressed genes listed per sample in top_genes.}
+          ribosomal_protein_regex:
+            type: string
+            default: ^RP[SL][0-9]+[A-Z]?[0-9]*$
+            description: Regular expression on the symbols of protein-coding ribosomal-protein genes.
+          hemoglobin_genes: {$ref: "#/$defs/gene_list_ref", default: hemoglobin, description: Hemoglobin genes.}
+          rrna_biotypes:
+            type: array
+            items: {type: string}
+            default: [rRNA, Mt_rRNA, rRNA_pseudogene]
+            description: Biotypes counted as rRNA.
           figure_metrics:
             type: array
             items: {type: string}
@@ -318,15 +432,32 @@ properties:
             default: [library_size, genes_count_ge10, pct_counts_mito, pct_counts_rrna, pct_counts_protein_coding,
                       pct_counts_top50_genes]
       pca:
+        description: PCA grid, scores and PC1 drivers.
         type: object
         default: {}
         additionalProperties: false
         properties:
-          enabled: {type: boolean, default: true}
-          transforms: {type: array, items: {type: string, enum: [vst, logcpm_tmm]}, default: [vst, logcpm_tmm]}
-          ntop: {type: array, items: {type: [integer, string]}, default: [500, 1000, 2000, all]}
-          sex_gene_variants: {type: array, items: {type: string}, default: [keep, drop_xist_y, drop_xy]}
-          gene_subsets: {type: array, items: {type: string}, default: [all]}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          transforms:
+            type: array
+            items: {enum: [vst, logcpm_tmm], type: string}
+            default: [vst, logcpm_tmm]
+            description: "Transforms of the grid: vst (DESeq2) and logcpm_tmm (log2 CPM after TMM)."
+          ntop:
+            type: array
+            items: {type: [integer, string]}
+            default: [500, 1000, 2000, all]
+            description: "Numbers of most variable genes of the grid (all: every filtered gene)."
+          sex_gene_variants:
+            type: array
+            items: {type: string}
+            default: [keep, drop_xist_y, drop_xy]
+            description: gene_filter.sex_genes values of the grid.
+          gene_subsets:
+            type: array
+            items: {type: string}
+            default: [all]
+            description: Gene subset expressions of the grid.
           symbol_exclusion_variants:
             type: array
             items: {type: string}
@@ -350,37 +481,44 @@ properties:
             description: Orients PC1 so that samples at this level have positive mean score (drivers, pc1_order).
             required: [factor, level]
             properties:
-              factor: {type: string}
-              level: {type: string}
-          abundance_sex_genes: {type: string, enum: [keep, drop_xist_y, drop_xy], default: keep}
-          scores_ntop: {type: [integer, string], default: 1000}
-          pc_drivers: {type: boolean, default: true}
-          qc_metrics_for_drivers: {type: array, items: {type: string}, default: []}
-          top_loadings: {type: integer, default: 40}
+              factor: {type: string, description: Sample sheet factor.}
+              level: {type: string, description: Level whose samples get a positive mean PC1 score.}
+          abundance_sex_genes:
+            type: string
+            enum: [keep, drop_xist_y, drop_xy]
+            default: keep
+            description: sex_genes rule of the PCA on log2(TPM + 1).
+          scores_ntop:
+            type: [integer, string]
+            default: 1000
+            description: Number of most variable genes of pca_scores (a value of ntop).
+          pc_drivers:
+            type: boolean
+            default: true
+            description: Report PC1 drivers on VST (correlation with QC metrics, loadings against gene features).
+          qc_metrics_for_drivers:
+            type: array
+            items: {type: string}
+            default: []
+            description: "QC metrics correlated with the PCs in pc1_vs_qc (absent ones are skipped; empty: none)."
+          top_loadings:
+            type: integer
+            default: 40
+            description: Genes with the largest absolute PC1 loading in pc1_top_loadings.
       markers:
         type: object
         default: {}
+        additionalProperties: false
+        description: Module 04, not implemented yet; its parameters are designed when it is ported.
         properties:
-          enabled: {type: boolean, default: true}
-          panels: {type: string, default: marker_panels}
-          pseudocount: {type: number, default: 1}
-          ratios:
-            type: array
-            default: []
-            items:
-              type: object
-              properties:
-                id: {type: string}
-                numerator_gene: {type: string}
-                denominator_gene: {type: string}
-                numerator_sample: {type: string}
-                denominator_sample: {type: string}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
       contamination:
+        description: Contaminant profile scores, ratio and excess checks, and the contaminant gene mask.
         type: object
         additionalProperties: false
         default: {}
         properties:
-          enabled: {type: boolean, default: true}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
           profiles:
             type: array
             default: []
@@ -390,13 +528,18 @@ properties:
               additionalProperties: false
               required: [id, genes]
               properties:
-                id: {type: string, pattern: "^[a-z0-9_]+$"}
-                genes: {$ref: "#/$defs/gene_list_ref"}
+                id: {type: string, pattern: "^[a-z0-9_]+$", description: Profile id.}
+                genes: {$ref: "#/$defs/gene_list_ref", description: Genes of the profile.}
           reference_profile:
             type: [string, "null"]
             default: null
-            description: Profile id whose CPM sum is also reported relative to the sample with the largest value (rel_to_max).
-          ratio_pseudocount: {type: number, minimum: 0, default: 1, description: CPM added before the log2 ratios of ratio_checks.}
+            description: >-
+              Profile id whose CPM sum is also reported relative to the sample with the largest value (rel_to_max).
+          ratio_pseudocount:
+            type: number
+            minimum: 0
+            default: 1
+            description: CPM added before the log2 ratios of ratio_checks.
           ratio_checks:
             type: array
             default: []
@@ -406,10 +549,10 @@ properties:
               additionalProperties: false
               required: [id, profile, numerator_sample, denominator_sample]
               properties:
-                id: {type: string, pattern: "^[a-z0-9_]+$"}
-                profile: {type: string}
-                numerator_sample: {type: string}
-                denominator_sample: {type: string}
+                id: {type: string, pattern: "^[a-z0-9_]+$", description: Check id.}
+                profile: {type: string, description: Profile id whose genes are compared.}
+                numerator_sample: {type: string, description: sample_id of the numerator.}
+                denominator_sample: {type: string, description: sample_id of the denominator.}
           excess_checks:
             type: array
             default: []
@@ -422,11 +565,20 @@ properties:
               additionalProperties: false
               required: [id, genes, profile, baseline_samples, samples]
               properties:
-                id: {type: string, pattern: "^[a-z0-9_]+$"}
-                genes: {$ref: "#/$defs/gene_list_ref"}
-                profile: {type: string}
-                baseline_samples: {type: array, items: {type: string}, minItems: 1}
-                samples: {type: array, items: {type: string}, minItems: 2, maxItems: 2}
+                id: {type: string, pattern: "^[a-z0-9_]+$", description: Check id.}
+                genes: {$ref: "#/$defs/gene_list_ref", description: Genes whose excess is measured.}
+                profile: {type: string, description: Profile id whose CPM sum divides the excess.}
+                baseline_samples:
+                  type: array
+                  items: {type: string}
+                  minItems: 1
+                  description: sample_ids whose mean CPM is the baseline.
+                samples:
+                  type: array
+                  items: {type: string}
+                  minItems: 2
+                  maxItems: 2
+                  description: The two sample_ids compared.
           mask:
             type: object
             additionalProperties: false
@@ -436,8 +588,12 @@ properties:
               gene sets of an MSigDB export (resource); their genes match by Ensembl ID (by symbol when
               annotation.id_type is gene_symbol).
             properties:
-              resource: {type: [string, "null"], default: null, description: Key of an msigdb_export in resources.items.}
+              resource:
+                type: [string, 'null']
+                default: null
+                description: Key of an msigdb_export in resources.items.
               include:
+                description: Groups of gene sets whose genes are masked.
                 type: array
                 default: []
                 items:
@@ -445,9 +601,17 @@ properties:
                   additionalProperties: false
                   required: [id, sets]
                   properties:
-                    id: {type: string, pattern: "^[a-z0-9_]+$"}
-                    sets: {type: array, items: {type: string}, minItems: 1}
+                    id:
+                      type: string
+                      pattern: ^[a-z0-9_]+$
+                      description: Group id (gene flag column of contaminant_mask).
+                    sets:
+                      type: array
+                      items: {type: string}
+                      minItems: 1
+                      description: Gene set names (gs_name) of the MSigDB export.
               exclude:
+                description: Groups of gene sets whose genes are not masked, even when in an include group.
                 type: array
                 default: []
                 items:
@@ -455,22 +619,34 @@ properties:
                   additionalProperties: false
                   required: [id, sets]
                   properties:
-                    id: {type: string, pattern: "^[a-z0-9_]+$"}
-                    sets: {type: array, items: {type: string}, minItems: 1}
-              add_profiles: {type: array, items: {type: string}, default: []}
+                    id:
+                      type: string
+                      pattern: ^[a-z0-9_]+$
+                      description: Group id (gene flag column of contaminant_mask).
+                    sets:
+                      type: array
+                      items: {type: string}
+                      minItems: 1
+                      description: Gene set names (gs_name) of the MSigDB export.
+              add_profiles:
+                type: array
+                items: {type: string}
+                default: []
+                description: Profile ids whose genes are always masked.
       contamination_sets:
         type: object
         default: {}
+        additionalProperties: false
+        description: Module 06, not implemented yet; its parameters are designed when it is ported.
         properties:
-          enabled: {type: boolean, default: true}
-          method: {type: string, enum: [camera_pr], default: camera_pr}
-          inter_gene_cor: {type: number, default: 0.01}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
       reference:
+        description: Reference gene universe from HPA cell-type expression.
         type: object
         additionalProperties: false
         default: {}
         properties:
-          enabled: {type: boolean, default: true}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
           profiles:
             type: array
             default: []
@@ -482,55 +658,87 @@ properties:
               additionalProperties: false
               required: [id, resource, cell]
               properties:
-                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                id: {type: string, pattern: "^[a-z0-9_]+$", description: Profile id.}
                 resource: {type: string, description: Key in resources.items.}
                 cell: {type: string, description: Value of the 'Immune cell' or 'Cell type' column.}
           target: {type: [string, "null"], default: null, description: Profile id of the target cells.}
-          contaminants: {type: array, items: {type: string}, default: [], description: Profile ids of contaminating cells.}
+          contaminants:
+            type: array
+            items: {type: string}
+            default: []
+            description: Profile ids of contaminating cells.
           min_target_expr: {type: number, default: 1, description: "target_expressed: target value >= this."}
           contam_min: {type: number, default: 20, description: "contam_sensitive: max contaminant value >= this ..."}
           contam_fold: {type: number, default: 5, description: "... and >= contam_fold x (target + 1)."}
           exclusion_candidates:
             $ref: "#/$defs/gene_list_ref"
             default: []
-            description: Genes (protein-coding) whose inclusion in the universe, or the reason for exclusion, is reported.
+            description: >-
+              Genes (protein-coding) whose inclusion in the universe, or the reason for exclusion, is reported.
       deconvolution:
         type: object
         default: {}
+        additionalProperties: false
+        description: Module 08, not implemented yet; its parameters are designed when it is ported.
         properties:
-          enabled: {type: boolean, default: true}
-          components: {type: object, default: {}}
-          marker_min_expr: {type: number, default: 50}
-          marker_specificity: {type: number, default: 10}
-          solver: {type: string, enum: [optim_lbfgsb, lawson_hanson], default: optim_lbfgsb}
-          variants: {type: array, default: []}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
       contrasts:
+        description: Fold-change estimators on counts and their spread.
         type: object
         default: {}
         additionalProperties: false
         properties:
-          enabled: {type: boolean, default: true}
-          estimators: {type: array, items: {type: string, enum: [logcpm_difference, deseq2_apeglm]}, default: [logcpm_difference]}
-          prior_count: {type: number, default: 2}
-          norm_method: {type: string, enum: [TMM, RLE, upperquartile, none, reference], default: TMM}
-          reference_genes: {oneOf: [{type: "null"}, {$ref: "#/$defs/gene_list_ref"}], default: null}
-          dispersion_design: {type: [string, "null"], default: null}
-          spread_subsets: {type: array, items: {type: string}, default: [all], description: Gene subsets of contrast_spread.}
-          spread_threshold: {type: number, default: 1}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          estimators:
+            type: array
+            items: {enum: [logcpm_difference, deseq2_apeglm], type: string}
+            default: [logcpm_difference]
+            description: >-
+              logcpm_difference: difference of mean log2 CPM (any contrast, no p-value); deseq2_apeglm:
+              apeglm-shrunken DESeq2 fold changes of one-vs-one contrasts (needs dispersion_design).
+          prior_count: {type: number, default: 2, description: Prior count of the log2 CPM of logcpm_difference.}
+          norm_method:
+            type: string
+            enum: [TMM, RLE, upperquartile, none, reference]
+            default: TMM
+            description: >-
+              Library normalisation of logcpm_difference (reference: factors computed on reference_genes).
+          reference_genes:
+            oneOf: [{type: 'null'}, {$ref: '#/$defs/gene_list_ref'}]
+            default: null
+            description: Genes of norm_method reference.
+          dispersion_design:
+            type: [string, 'null']
+            default: null
+            description: >-
+              Id of the designs[] entry whose dispersions deseq2_apeglm uses (at least 1 residual degree of freedom).
+          spread_subsets:
+            type: array
+            items: {type: string}
+            default: [all]
+            description: Gene subsets of contrast_spread.
+          spread_threshold:
+            type: number
+            default: 1
+            description: "|log2 fold change| counted in contrast_spread (n_abs_lfc_gt_threshold)."
       de_test:
+        description: Inferential DE with DESeq2 for every design with a contrast.
         type: object
         default: {}
         additionalProperties: false
         properties:
-          enabled: {type: boolean, default: true}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
           prefilter:
             type: object
             default: {min_count: 10, min_samples: 3}
             additionalProperties: false
             description: Genes with at least min_count reads in at least min_samples samples are tested.
             properties:
-              min_count: {type: integer, minimum: 0}
-              min_samples: {type: integer, minimum: 1}
+              min_count: {type: integer, minimum: 0, description: Reads a gene needs in at least min_samples samples.}
+              min_samples:
+                type: integer
+                minimum: 1
+                description: Number of samples in which a gene needs min_count reads.
           results_alpha:
             type: number
             default: 0.1
@@ -544,22 +752,31 @@ properties:
               required: [design, contrast_table]
               additionalProperties: false
               properties:
-                design: {type: string}
-                contrast_table: {type: string}
+                design: {type: string, description: Design id.}
+                contrast_table: {type: string, description: Id of an inputs.contrast_tables entry.}
       concordance:
+        description: Agreement of contrast pairs.
         type: object
         default: {}
         additionalProperties: false
         properties:
-          enabled: {type: boolean, default: true}
-          thresholds: {$ref: "#/$defs/threshold_list", default: [0.58, 1]}
-          subsets: {type: array, items: {type: string}, default: [all]}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          thresholds:
+            $ref: '#/$defs/threshold_list'
+            default: [0.58, 1]
+            description: "|log2 fold change| thresholds of the concordance counts."
+          subsets:
+            type: array
+            items: {type: string}
+            default: [all]
+            description: Gene subset expressions summarised.
       geneset_test:
+        description: Pre-ranked gene set tests (cameraPR, fgsea) on fold changes.
         type: object
         additionalProperties: false
         default: {}
         properties:
-          enabled: {type: boolean, default: true}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
           resource: {type: string, default: gene_sets, description: Key of an msigdb_export in resources.items.}
           estimator:
             type: [string, "null"]
@@ -572,7 +789,11 @@ properties:
             items: {type: string}
             default: []
             description: Contrast ids to test, in this order (empty = every contrast of the estimator, config order).
-          methods: {type: array, items: {type: string, enum: [camera_pr, fgsea]}, default: [camera_pr]}
+          methods:
+            type: array
+            items: {enum: [camera_pr, fgsea], type: string}
+            default: [camera_pr]
+            description: "camera_pr: limma::cameraPR; fgsea: pre-ranked fgsea (multilevel)."
           collections:
             type: array
             minItems: 1
@@ -585,24 +806,31 @@ properties:
               additionalProperties: false
               required: [id, collection]
               properties:
-                id: {type: string, pattern: "^[A-Za-z0-9_]+$"}
-                collection: {type: string}
-                subcollection: {type: [string, "null"], default: null}
-                set_pattern: {type: [string, "null"], default: null}
+                id: {type: string, pattern: "^[A-Za-z0-9_]+$", description: Collection id used in outputs.}
+                collection: {type: string, description: "gs_collection of the export (e.g. H, C2, C7)."}
+                subcollection:
+                  type: [string, 'null']
+                  default: null
+                  description: "gs_subcollection (e.g. CP:REACTOME; null: any)."
+                set_pattern:
+                  type: [string, 'null']
+                  default: null
+                  description: "Regular expression on gs_name (null: every set)."
           universes:
             type: array
             minItems: 1
             default: [{id: all, subset: all}]
-            description: Ranked genes, as subset expressions over the genes of the contrast tables; tested in this order.
+            description: >-
+              Ranked genes, as subset expressions over the genes of the contrast tables; tested in this order.
             items:
               type: object
               additionalProperties: false
               required: [id, subset]
               properties:
-                id: {type: string, pattern: "^[A-Za-z0-9_]+$"}
-                subset: {type: string}
-          min_size: {type: integer, minimum: 1, default: 15}
-          max_size: {type: integer, minimum: 1, default: 500}
+                id: {type: string, pattern: "^[A-Za-z0-9_]+$", description: Universe id used in outputs.}
+                subset: {type: string, description: "Subset expression over the gene flags (e.g. all, no_masked)."}
+          min_size: {type: integer, minimum: 1, default: 15, description: Smallest set size within the universe.}
+          max_size: {type: integer, minimum: 1, default: 500, description: Largest set size within the universe.}
           inter_gene_cor: {type: array, items: {type: number}, default: [0.01], description: cameraPR variants.}
           use_ranks: {type: array, items: {type: boolean}, default: [false], description: cameraPR variants.}
           fgsea_tie_jitter_sd:
@@ -617,55 +845,85 @@ properties:
             default: null
             description: >-
               Seed set once before fgsea (universes outer, contrasts inner, on one random stream); null: project.seed.
-          leading_edge_max: {type: integer, minimum: 0, default: 15, description: Leading-edge symbols reported per set.}
-          alpha: {type: number, default: 0.05}
+          leading_edge_max:
+            type: integer
+            minimum: 0
+            default: 15
+            description: Leading-edge symbols reported per set.
+          alpha:
+            type: number
+            default: 0.05
+            description: Adjusted p-value threshold of the counts, the concordance and the figures.
           concordance_collections:
             type: array
             items: {type: string}
             default: []
             description: Collection ids summarised in geneset_concordance (empty = all).
-          figure_universe: {type: [string, "null"], default: null, description: "Universe of nes_concordance (null: the first)."}
+          figure_universe:
+            type: [string, 'null']
+            default: null
+            description: 'Universe of nes_concordance (null: the first).'
           figure_collections:
             type: array
             items: {type: string}
             default: []
             description: Collection ids drawn in nes_concordance (empty = all).
-          heatmap_collection: {type: [string, "null"], default: null, description: "Collection of nes_heatmap (null: the first)."}
+          heatmap_collection:
+            type: [string, 'null']
+            default: null
+            description: 'Collection of nes_heatmap (null: the first).'
       ora:
+        description: Over-representation analysis of the significant genes of each contrast table.
         type: object
         default: {}
         additionalProperties: false
         properties:
-          enabled: {type: boolean, default: true}
-          databases: {type: array, items: {type: string, enum: [GO_BP, GO_CC, GO_MF, KEGG, Reactome]}, default: [GO_BP, GO_CC, GO_MF, KEGG, Reactome]}
-          p_adjust_method: {type: string, default: BH}
-          pvalue_cutoff: {type: number, default: 0.05}
-          show_category: {type: integer, default: 15}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          databases:
+            type: array
+            items: {enum: [GO_BP, GO_CC, GO_MF, KEGG, Reactome], type: string}
+            default: [GO_BP, GO_CC, GO_MF, KEGG, Reactome]
+            description: Databases tested (KEGG needs the kegg_pathways resource).
+          p_adjust_method: {type: string, default: BH, description: pAdjustMethod of clusterProfiler.}
+          pvalue_cutoff:
+            type: number
+            default: 0.05
+            description: >-
+              pvalueCutoff of clusterProfiler (terms are kept when p-value and adjusted p-value are below it).
+          show_category:
+            type: integer
+            default: 15
+            description: Terms per contrast in the ORA figures (lowest adjusted p-value first).
       volcano:
+        description: Volcano plots and significant-gene counts of the imported contrast tables.
         type: object
         default: {}
         additionalProperties: false
         properties:
-          enabled: {type: boolean, default: true}
-          label_top: {type: integer, default: 15}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          label_top:
+            type: integer
+            default: 15
+            description: Significant genes labelled per volcano (most significant first).
       signatures:
         type: object
         default: {}
+        additionalProperties: false
+        description: Module 15, not implemented yet; its parameters are designed when it is ported.
         properties:
-          enabled: {type: boolean, default: true}
-          methods: {type: array, items: {type: string, enum: [zscore, ssgsea, singscore]}, default: [zscore, singscore]}
-          sets: {type: array, items: {type: string}, default: []}
-          composites: {type: array, default: []}
-          min_size: {type: integer, default: 10}
-          universes: {type: array, items: {type: string}, default: [all]}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
       pairing:
+        description: Sex check, expression fingerprint distances and male fraction.
         type: object
         additionalProperties: false
         default: {}
         properties:
-          enabled: {type: boolean, default: true}
-          sex_genes: {$ref: "#/$defs/gene_list_ref", default: sex_genes}
-          xist_genes: {$ref: "#/$defs/gene_list_ref", default: xist}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          sex_genes:
+            $ref: '#/$defs/gene_list_ref'
+            default: sex_genes
+            description: Sex-chromosome genes of the sex check (those on chrX or chrY).
+          xist_genes: {$ref: "#/$defs/gene_list_ref", default: xist, description: XIST gene(s).}
           group_column:
             type: [string, "null"]
             default: null
@@ -677,6 +935,7 @@ properties:
             default: null
             description: Two-level factor that each donor is expected to span (e.g. the sorted fraction).
           fingerprint_variants:
+            description: Gene sets of the expression fingerprint, each giving pairwise sample distances.
             type: array
             default: [{id: fingerprint, genes: fingerprint_genes}]
             items:
@@ -684,14 +943,19 @@ properties:
               additionalProperties: false
               required: [id, genes]
               properties:
-                id: {type: string, pattern: "^[a-z0-9_]+$"}
-                genes: {$ref: "#/$defs/gene_list_ref"}
+                id: {type: string, pattern: "^[a-z0-9_]+$", description: Variant id.}
+                genes: {$ref: "#/$defs/gene_list_ref", description: Genes of the fingerprint.}
                 normalization:
                   type: string
                   enum: [cpm, cpm_tmm]
                   default: cpm
-                  description: CPM on all genes, or TMM-normalised CPM on the genes kept by gene_filter (sex genes kept).
-                min_total_count: {type: integer, minimum: 0, default: 0, description: Genes with fewer reads over all samples are dropped.}
+                  description: >-
+                    CPM on all genes, or TMM-normalised CPM on the genes kept by gene_filter (sex genes kept).
+                min_total_count:
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  description: Genes with fewer reads over all samples are dropped.
           male_reference_samples:
             type: array
             items: {type: string}
@@ -700,6 +964,7 @@ properties:
               sample_ids taken as all-male material (XIST about 0); male fractions are relative to their mean. Empty:
               the male fraction is not estimated.
           sex_denominators:
+            description: Male-fraction estimates, relative to male_reference_samples.
             type: array
             default: [{id: chr_y}]
             items:
@@ -707,7 +972,7 @@ properties:
               additionalProperties: false
               required: [id]
               properties:
-                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                id: {type: string, pattern: "^[a-z0-9_]+$", description: "Estimate id (column male_fraction_<id>)."}
                 numerator:
                   $ref: "#/$defs/gene_list_ref"
                   description: Genes summed in the numerator (default the chrY genes of sex_genes).
@@ -715,76 +980,97 @@ properties:
                   $ref: "#/$defs/gene_list_ref"
                   description: Genes summed in the denominator (default none).
       power:
+        description: BCV estimate and indicative sample sizes.
         type: object
         additionalProperties: false
         default: {}
         properties:
-          enabled: {type: boolean, default: true}
-          design: {type: [string, "null"], default: null, description: "Id of a designs[] entry (default: the first)."}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
+          design:
+            type: [string, 'null']
+            default: null
+            description: 'Id of a designs[] entry (default: the first).'
           universes:
             type: array
             default: [{id: all, subset: all}]
             description: >-
-              Gene sets of the BCV, as subset expressions over the filtered genes (e.g. in_reference_universe+no_masked);
-              estimated in this order on one random stream.
+              Gene sets of the BCV, as subset expressions over the filtered genes (e.g.
+              in_reference_universe+no_masked); estimated in this order on one random stream.
             items:
               type: object
               additionalProperties: false
               required: [id, subset]
               properties:
-                id: {type: string, pattern: "^[a-z0-9_]+$"}
-                subset: {type: string}
-          bootstrap_replicates: {type: integer, minimum: 1, default: 200}
+                id: {type: string, pattern: "^[a-z0-9_]+$", description: Universe id used in outputs.}
+                subset: {type: string, description: Subset expression over the filtered genes.}
+          bootstrap_replicates:
+            type: integer
+            minimum: 1
+            default: 200
+            description: Bootstrap samples of genes for the interval of the common BCV.
           reference_scenario:
             type: object
             additionalProperties: false
             default: {}
             description: Scenario of the n_hart_* columns of the bcv table.
             properties:
-              mu: {type: number, default: 100}
-              fold_change: {type: number, default: 2}
-              alpha: {type: number, default: 0.01}
+              mu: {type: number, default: 100, description: Mean count.}
+              fold_change: {type: number, default: 2, description: Fold change to detect.}
+              alpha: {type: number, default: 0.01, description: Two-sided significance level.}
           grid:
+            description: Grid of sample_size_grid.
             type: object
             additionalProperties: false
             default: {}
             properties:
-              cv: {type: array, items: {type: number}, default: [0.2, 0.3, 0.4, 0.6]}
+              cv:
+                type: array
+                items: {type: number}
+                default: [0.2, 0.3, 0.4, 0.6]
+                description: Biological coefficients of variation.
               cv_labels:
                 type: array
                 items: {type: string}
                 default: []
                 description: One label per cv value (the assumption behind it); empty for none.
-              mu: {type: array, items: {type: number}, default: [20, 100]}
-              fold_change: {type: array, items: {type: number}, default: [1.5, 2]}
-              alpha: {type: array, items: {type: number}, default: [0.01, 0.001]}
-              power: {type: number, default: 0.8}
+              mu: {type: array, items: {type: number}, default: [20, 100], description: Mean counts.}
+              fold_change:
+                type: array
+                items: {type: number}
+                default: [1.5, 2]
+                description: Fold changes to detect.
+              alpha:
+                type: array
+                items: {type: number}
+                default: [0.01, 0.001]
+                description: Two-sided significance levels.
+              power: {type: number, default: 0.8, description: Target power.}
       coverage:
         type: object
         default: {}
+        additionalProperties: false
+        description: Module 18, not implemented yet; its parameters are designed when it is ported.
         properties:
-          enabled: {type: boolean, default: true}
-          target_genes: {$ref: "#/$defs/gene_list_ref", default: []}
-          normalizer_genes: {$ref: "#/$defs/gene_list_ref", default: []}
-          flank_bp: {type: integer, default: 10000}
-          window_bp: {type: integer, default: 500}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
       covariates:
         type: object
         default: {}
+        additionalProperties: false
+        description: Module 19, not implemented yet; its parameters are designed when it is ported.
         properties:
-          enabled: {type: boolean, default: true}
-          spline_df: {type: integer, default: 4}
-          strata: {type: array, items: {type: string}, default: [ge_median, ge_q75, all]}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
       reference_axis:
+        description: Fold changes against reference cell-type axes and gene sets.
         type: object
         additionalProperties: false
         default: {}
         properties:
-          enabled: {type: boolean, default: true}
+          enabled: {type: boolean, default: true, description: Run the module when its data levels are present.}
           estimator:
             type: [string, "null"]
             default: null
-            description: "Method of the contrast tables whose log2 fold changes are used (null: the first method available)."
+            description: >-
+              Method of the contrast tables whose log2 fold changes are used (null: the first method available).
           contrasts:
             type: array
             items: {type: string}
@@ -808,24 +1094,45 @@ properties:
               additionalProperties: false
               required: [id, resource, numerator, denominator]
               properties:
-                id: {type: string, pattern: "^[a-z0-9_]+$"}
+                id: {type: string, pattern: "^[a-z0-9_]+$", description: Axis id used in outputs.}
                 resource: {type: string, description: Key of an hpa_immune_cell or hpa_single_cell export.}
-                numerator: {type: array, minItems: 1, items: {type: string}}
-                denominator: {type: array, minItems: 1, items: {type: string}}
-                pseudocount: {type: number, minimum: 0, default: 1}
+                numerator:
+                  type: array
+                  minItems: 1
+                  items: {type: string}
+                  description: Cell types of the numerator (values of the export's cell column).
+                denominator:
+                  type: array
+                  minItems: 1
+                  items: {type: string}
+                  description: Cell types of the denominator.
+                pseudocount:
+                  type: number
+                  minimum: 0
+                  default: 1
+                  description: Added to the mean expressions before the log2 ratio.
                 threshold:
                   type: number
                   exclusiveMinimum: 0
                   default: 1
                   description: Genes with axis >= threshold (high) and <= -threshold (low) define the sample scores.
           gene_sets:
+            description: Gene sets of an MSigDB export whose mean fold change is reported.
             type: object
             additionalProperties: false
             default: {}
             properties:
-              resource: {type: [string, "null"], default: null, description: Key of an msigdb_export in resources.items.}
-              sets: {type: array, items: {type: string}, default: [], description: Sets whose mean fold change is reported.}
+              resource:
+                type: [string, 'null']
+                default: null
+                description: Key of an msigdb_export in resources.items.
+              sets:
+                type: array
+                items: {type: string}
+                default: []
+                description: Sets whose mean fold change is reported.
           sign_test:
+            description: Sign agreement of contrast pairs.
             type: object
             additionalProperties: false
             default: {}
@@ -837,12 +1144,20 @@ properties:
                   |log2 fold change| that both contrasts of each contrast pair must exceed; the fraction with the same
                   sign gets a two-sided binomial p-value (descriptive: genes are not independent). null: no test.
           sample_scores: {type: boolean, default: true, description: Per-sample axis scores (needs counts).}
-          prior_count: {type: number, default: 2}
-          norm_method: {type: string, enum: [TMM, RLE, upperquartile, none], default: TMM}
+          prior_count: {type: number, default: 2, description: Prior count of the log2 CPM of the sample scores.}
+          norm_method:
+            type: string
+            enum: [TMM, RLE, upperquartile, none]
+            default: TMM
+            description: Library normalisation of the sample scores.
 
   export:
+    description: Extra export formats.
     type: object
     additionalProperties: false
     default: {}
     properties:
-      xlsx: {type: boolean, default: false}
+      xlsx:
+        type: boolean
+        default: false
+        description: One Excel workbook per module in report/, one sheet per table.

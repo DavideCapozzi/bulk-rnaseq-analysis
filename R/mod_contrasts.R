@@ -60,10 +60,11 @@ estimate_lfc <- function(se, contrasts, rows = NULL, prior_count = 2,
     }
     norm_factors <- reference_norm_factors(counts, ref)
   }
-  lc <- log_cpm(counts,
-    norm_method = if (norm_method == "reference") "none" else norm_method,
-    prior_count = prior_count, norm_factors = norm_factors
-  )
+  if (is.null(norm_factors)) {
+    # Computed once: used by log_cpm() and returned as an attribute.
+    norm_factors <- edgeR::calcNormFactors(edgeR::DGEList(counts), method = norm_method)$samples$norm.factors
+  }
+  lc <- log_cpm(counts, prior_count = prior_count, norm_factors = norm_factors)
   samples <- as.data.frame(SummarizedExperiment::colData(se))
   ave <- rowMeans(lc)
   out <- lapply(contrasts, function(cn) {
@@ -78,11 +79,7 @@ estimate_lfc <- function(se, contrasts, rows = NULL, prior_count = 2,
   })
   ct <- do.call(rbind, out)
   rownames(ct) <- NULL
-  attr(ct, "norm_factors") <- if (is.null(norm_factors)) {
-    edgeR::calcNormFactors(edgeR::DGEList(counts), method = norm_method)$samples$norm.factors
-  } else {
-    norm_factors
-  }
+  attr(ct, "norm_factors") <- norm_factors
   ct
 }
 

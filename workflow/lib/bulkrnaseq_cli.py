@@ -25,6 +25,9 @@ from pathlib import Path
 
 from bulkrnaseq_toolkit import DEV_ENV, git_state, package_version
 
+# Each step is a separate R process with its own seeds, so outputs are byte-identical for any number of cores.
+DEFAULT_CORES = min(4, os.cpu_count() or 1)
+
 REPO = Path(__file__).resolve().parents[2]
 SNAKEFILE = REPO / "workflow" / "Snakefile"
 TEMPLATES = REPO / "workflow" / "templates"
@@ -190,7 +193,12 @@ def build_parser() -> argparse.ArgumentParser:
             action="store_true",
             help="development mode: allow uncommitted changes and a different toolkit.version",
         )
-        p.add_argument("--cores", type=int, default=1)
+        p.add_argument(
+            "--cores",
+            type=int,
+            default=DEFAULT_CORES,
+            help=f"modules run in parallel (default {DEFAULT_CORES}); outputs do not depend on it",
+        )
         if name == "run":
             p.add_argument("-n", "--dry-run", action="store_true")
             p.add_argument(

@@ -77,5 +77,9 @@ jobs:
             bin/bulkrnaseq fetch "$cfg"
             bin/bulkrnaseq run "$cfg"
           done
-          diff <(cd "$RUNNER_TEMP/results_first" && find . -type f ! -name run_timestamps.json ! -path '*/.snakemake/*' -print0 | sort -z | xargs -0 md5sum) \
-               <(cd results && find . -type f ! -name run_timestamps.json ! -path '*/.snakemake/*' -print0 | sort -z | xargs -0 md5sum)
+          # Wall-clock files differ between runs by design: run_timestamps.json and the benchmarks/ folder.
+          list() {
+            (cd "$1" && find . -type f ! -name run_timestamps.json ! -path '*/benchmarks/*' ! -path '*/.snakemake/*' \
+              -print0 | sort -z | xargs -0 md5sum)
+          }
+          diff <(list "$RUNNER_TEMP/results_first") <(list results)

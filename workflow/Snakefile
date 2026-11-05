@@ -36,6 +36,9 @@ CACHE = os.path.normpath(os.path.join(CONFIG_DIR, config.get("resources", {}).ge
 PROV = os.path.join(OUT, "00_provenance")
 RESOLVED = os.path.join(PROV, "config_resolved.yaml")
 TOOLKIT_JSON = os.path.join(PROV, "toolkit.json")
+# Wall time, CPU time and peak memory per step (Snakemake benchmark files). They vary between runs, so like
+# run_timestamps.json they are excluded from every byte-for-byte comparison of two runs.
+BENCH = os.path.join(PROV, "benchmarks")
 STEP = os.path.join(REPO, "workflow", "scripts", "run_step.R")
 
 

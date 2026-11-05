@@ -2,10 +2,26 @@
 # built package, so these checks run from the source tree (devtools::test(), CI) and are skipped by R CMD check.
 repo_file <- function(...) test_path("..", "..", ...)
 
-test_that("docs/MODULES.md is up to date with the registry and the schema", {
+test_that("docs/MODULES.md and docs/CONFIG.md are up to date with the registry and the schema", {
   path <- repo_file("docs", "MODULES.md")
   skip_if_not(file.exists(path), "docs/ is not in the built package")
-  expect_identical(readLines(path), modules_doc(), info = "regenerate with: Rscript tools/make_modules_doc.R")
+  expect_identical(readLines(path), modules_doc(), info = "regenerate with: Rscript tools/make_docs.R")
+  expect_identical(readLines(repo_file("docs", "CONFIG.md")), config_doc(), info = "regenerate with: Rscript tools/make_docs.R")
+})
+
+test_that("every parameter of the config schema has a description", {
+  expect_identical(schema_params_without_description(), character())
+})
+
+test_that("schema_param_rows() renders nullable objects, arrays of objects and maps of objects", {
+  s <- list(properties = list(
+    a = list(type = list("object", "null"), properties = list(b = list(type = "string", description = "B."))),
+    l = list(type = "array", items = list(type = "object", properties = list(c = list(type = "integer")))),
+    m = list(type = "object", additionalProperties = list(type = "object", properties = list(d = list(type = "string"))))
+  ))
+  rows <- schema_param_rows(s, s)
+  expect_identical(sub("^\\| `([^`]+)`.*$", "\\1", rows), c("a", "a.b", "l", "l[].c", "m", "m.<key>.d"))
+  expect_identical(schema_params_without_description(s), c("a", "l", "l[].c", "m", "m.<key>.d"))
 })
 
 test_that("the README lists the modules each example scenario runs", {
@@ -41,9 +57,24 @@ test_that("modules_doc() renders schema types, defaults and conditions", {
   expect_identical(doc_condition(list(configured = c("profiles", "mask.include"))), "configured: profiles, mask.include")
   expect_identical(doc_condition(list(contrasts_defined = TRUE)), "contrasts_defined: true")
   expect_identical(doc_text("a |b\n c"), "a \\|b c")
+  expect_true(all(c("## project", "## inputs", "## modules") %in% config_doc()))
   doc <- modules_doc()
   expect_true(all(sprintf(
     "## %02d %s", vapply(read_registry(), function(m) as.integer(m$number), 1L),
     names(read_registry())
   ) %in% doc))
+})
+
+test_that("the schema has no empty keys (e.g. a comma inside an unquoted flow-mapping description)", {
+  empty_keys <- function(x, path = "") {
+    if (!is.list(x)) {
+      return(character())
+    }
+    nms <- names(x) %||% rep("", length(x))
+    unlist(lapply(seq_along(x), function(i) {
+      p <- paste0(path, "/", if (nzchar(nms[[i]])) nms[[i]] else i)
+      if (is.null(x[[i]]) && nms[[i]] != "default") p else empty_keys(x[[i]], p)
+    }))
+  }
+  expect_length(empty_keys(yaml::read_yaml(config_schema_path())), 0)
 })

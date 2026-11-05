@@ -241,7 +241,11 @@ geneset_camera <- function(stat, idx, igc, use_ranks, universe, contrast) {
   if (length(idx) == 0) {
     return(NULL)
   }
-  cp <- limma::cameraPR(stat, idx, inter.gene.cor = igc, use.ranks = use_ranks, sort = FALSE)
+  cp <- if (use_ranks) {
+    camera_pr_ranks(stat, idx, igc)
+  } else {
+    limma::cameraPR(stat, idx, inter.gene.cor = igc, use.ranks = FALSE, sort = FALSE)
+  }
   out <- data.frame(
     method = "camera_pr", inter_gene_cor = igc, use_ranks = use_ranks, universe = universe, contrast_id = contrast,
     collection = NA_character_, set_id = rownames(cp), size = as.integer(cp$NGenes), es = NA_real_, nes = NA_real_,
@@ -250,6 +254,53 @@ geneset_camera <- function(stat, idx, igc, use_ranks, universe, contrast) {
     inference_scope = "conditional_on_contrast", stringsAsFactors = FALSE
   )
   out[order(out$set_id, method = "radix"), , drop = FALSE]
+}
+
+# limma::cameraPR(use.ranks = TRUE) for integer set indices. limma (3.62) recomputes the ranks and the tie
+# correction of all genes for every set (rankSumTestWithCorrelation), which dominates the run time with
+# thousands of sets; here they are computed once, and limma's per-set arithmetic is repeated with the same
+# expressions in the same order, so the results are identical (a test compares them with limma).
+camera_pr_ranks <- function(statistic, index, inter_gene_cor) {
+  if (length(statistic) < 3 || anyNA(statistic) || abs(inter_gene_cor) >= 1) {
+    return(limma::cameraPR(statistic, index, inter.gene.cor = inter_gene_cor, use.ranks = TRUE, sort = FALSE))
+  }
+  n <- length(statistic)
+  r <- rank(statistic)
+  ties <- length(r) != length(unique(r))
+  if (ties) {
+    nties <- table(r)
+    adjustment <- sum(nties * (nties + 1) * (nties - 1)) / (n * (n + 1) * (n - 1))
+  }
+  correlation <- inter_gene_cor
+  p <- vapply(index, function(iset) {
+    r1 <- r[iset]
+    n1 <- length(r1)
+    n2 <- n - n1
+    u <- n1 * n2 + n1 * (n1 + 1) / 2 - sum(r1)
+    mu <- n1 * n2 / 2
+    if (correlation == 0 || n1 == 1) {
+      sigma2 <- n1 * n2 * (n + 1) / 12
+    } else {
+      sigma2 <- asin(1) * n1 * n2 + asin(0.5) * n1 * n2 * (n2 - 1) +
+        asin(correlation / 2) * n1 * (n1 - 1) * n2 * (n2 - 1) + asin((correlation + 1) / 2) * n1 * (n1 - 1) * n2
+      sigma2 <- sigma2 / 2 / pi
+    }
+    if (ties) sigma2 <- sigma2 * (1 - adjustment)
+    c(
+      stats::pt((u - 0.5 - mu) / sqrt(sigma2), df = Inf, lower.tail = FALSE),
+      stats::pt((u + 0.5 - mu) / sqrt(sigma2), df = Inf)
+    )
+  }, c(0, 0))
+  down <- p[1, ]
+  up <- p[2, ]
+  direction <- rep_len("Up", length(index))
+  direction[down < up] <- "Down"
+  tab <- data.frame(
+    NGenes = as.numeric(lengths(index)), Direction = direction, PValue = 2 * pmin(down, up),
+    row.names = names(index), stringsAsFactors = FALSE
+  )
+  if (length(index) > 1L) tab$FDR <- stats::p.adjust(tab$PValue, method = "BH")
+  tab
 }
 
 # Label of a method variant (fgsea, or cameraPR with its inter-gene correlation and use of ranks).

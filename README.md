@@ -11,13 +11,15 @@ are missing are skipped with a stated reason, never silently.
 Statistical guardrails live in the code, not in documentation:
 
 - no sample-level p-value without residual degrees of freedom (`assert_df()`: error at 0, exploratory flag at 1);
-- every p-value carries an `inference_scope` (`sample` or `conditional_on_contrast`);
+- every p-value carries an `inference_scope`: `sample` (samples are the replicates), `conditional_on_contrast`
+  (genes are the replicates, e.g. ORA or NOISeq without replicates) or `ranking_only` (gene permutations, fgsea);
 - every random step is seeded, and two runs give byte-identical outputs;
 - sample metadata come only from the sample sheet, never from file or column names.
 
 Status: early development (0.x). [`docs/MODULES.md`](docs/MODULES.md), generated from the module registry
 ([`inst/modules.yaml`](inst/modules.yaml)) and the config schema, lists every module with its status, the data it
-needs, its outputs, caveats and parameters. Modules not implemented yet are skipped with the reason "not
+needs, its outputs, caveats and parameters; [`docs/CONFIG.md`](docs/CONFIG.md) documents every other section of
+the config. Modules not implemented yet are skipped with the reason "not
 implemented"; inputs not supported yet (coverage tracks, md5sum files) are refused rather than ignored. MultiQC HTML
 reports (1.x with embedded plot data) are read as QC input; decoding them needs `python3`. Design notes:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Changes: [`CHANGELOG.md`](CHANGELOG.md).
@@ -56,7 +58,9 @@ bin/bulkrnaseq run   config/examples/scenario_b_excel.yaml
 Outputs go to `results/<project name>/`: one folder per step (`01_ingest`, `02_qc`, …) with TSV tables, a
 `.meta.json` sidecar per table (description, units, filters, seed), PNG figures, one Excel workbook per module in
 `report/`, and `report/summary.md` with the status of every module and the reason for each skip.
-`00_provenance/` records the resolved config, the toolkit commit and the md5 of every input.
+`00_provenance/` records the resolved config, the toolkit commit, the md5 of every input and, in `benchmarks/`,
+the wall time and peak memory of every step. `--cores N` (before the config) runs independent modules in
+parallel, by default up to 4; the outputs do not depend on it.
 
 ### Scenario a: provider counts from STAR
 
@@ -103,8 +107,23 @@ bin/bulkrnaseq init ~/projects/my_study --scenario excel --git
 ```
 
 This creates `input/` (provider files, kept read-only), `analysis/pipeline_v1/config/` (config and sample sheet)
-and, with `--git`, a local repository that tracks the config only. Fill in the sample sheet (`sample_id`,
-`input_column` and the experimental factors), point `inputs` at the provider files, then `plan`, `fetch`, `run`.
+and, with `--git`, a local repository that tracks the config only. Then:
+
+1. copy the provider files into `input/` (every run records their md5 in `00_provenance/run_manifest.json`);
+2. fill in the sample sheet: `sample_id`, `input_column` (the file name part or matrix column of each sample) and
+   the experimental factors; nothing is parsed from sample names;
+3. point `inputs` at the files ([`docs/CONFIG.md`](docs/CONFIG.md)); a provider DE table needs `df_residual`, the
+   residual degrees of freedom of the provider's model, which decides whether its p-values are sample-level;
+4. `plan` shows which modules run and why the others are skipped; add `designs`, `contrasts` or module parameters
+   ([`docs/MODULES.md`](docs/MODULES.md)) until the plan matches the questions of the study;
+5. `fetch` retrieves the resources (GTF, gene sets, HPA exports) into the cache, then `run`.
+
+A typical case: a provider delivers raw counts, normalised counts and a DESeq2 workbook in Excel, for two sorted
+fractions of three donors. The `matrix` and `deseq2` adapters read them; `01_ingest/normalization_check.tsv`
+reconstructs the provider's gene filter and size factors; `de_test` refits the provider's design
+(`compare_with` reports gene by gene whether it is reproduced) and, once the pairing of the samples is confirmed,
+a paired `~ donor + fraction` design; `volcano`, `ora` and `geneset_test` run on the provider table and on the
+refitted ones.
 
 Each config pins `toolkit.version`. The run stops if it differs from this checkout's `DESCRIPTION` or if the
 checkout has uncommitted changes, so every results folder maps to one commit. `run --dev` turns both checks into

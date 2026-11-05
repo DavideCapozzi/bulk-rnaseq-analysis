@@ -127,3 +127,11 @@ def test_ingest_and_modules_depend_on_the_toolkit_identity():
     ingest_inputs = text.split("rule ingest:")[1].split("output:")[0]
     assert "TOOLKIT_JSON" in ingest_inputs
     assert "return [RESOLVED, TOOLKIT_JSON]" in text
+
+
+def test_default_cores_is_bounded():
+    from bulkrnaseq_cli import DEFAULT_CORES, build_parser
+
+    assert 1 <= DEFAULT_CORES <= 4
+    assert build_parser().parse_args(["run", "x.yaml"]).cores == DEFAULT_CORES
+    assert build_parser().parse_args(["run", "--cores", "2", "x.yaml"]).cores == 2

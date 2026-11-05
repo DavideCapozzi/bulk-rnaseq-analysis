@@ -10,6 +10,8 @@ rule ingest:
         os.path.join(OUT, "01_ingest", "step.done"),
     log:
         os.path.join(OUT, "01_ingest", "logs", "ingest.log"),
+    benchmark:
+        os.path.join(BENCH, "01_ingest.tsv")
     shell:
         "{RSCRIPT:q} {STEP:q} ingest {input.config} {REPO} > {log} 2>&1"
 
@@ -28,6 +30,8 @@ rule module:
         os.path.join(OUT, "{moddir}", "step.done"),
     log:
         os.path.join(OUT, "{moddir}", "logs", "module.log"),
+    benchmark:
+        os.path.join(BENCH, "{moddir}.tsv")
     wildcard_constraints:
         moddir=r"(0[2-9]|[1-9][0-9])_[a-z_]+",
     params:
@@ -50,6 +54,8 @@ rule provenance:
         os.path.join(PROV, "run_manifest.json"),
     log:
         os.path.join(PROV, "logs", "provenance.log"),
+    benchmark:
+        os.path.join(BENCH, "provenance.tsv")
     shell:
         "{RSCRIPT:q} {STEP:q} provenance {RESOLVED} {REPO} > {log} 2>&1"
 
@@ -61,5 +67,7 @@ rule report:
         os.path.join(OUT, "report", "summary.md"),
     log:
         os.path.join(PROV, "logs", "report.log"),
+    benchmark:
+        os.path.join(BENCH, "report.tsv")
     shell:
         "{RSCRIPT:q} {STEP:q} report {RESOLVED} {REPO} > {log} 2>&1"
